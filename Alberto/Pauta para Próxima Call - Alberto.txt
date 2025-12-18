@@ -1,0 +1,133 @@
+● 📞 Pauta para Próxima Call - Projeto AGORA
+
+ 🎯 Assuntos Críticos para Decisão
+
+ 1. Validação da Nova Estratégia de Abordagem em Três Fases
+
+**Fase 1: A Escuta - Monitoramento Passivo**
+- Confirmar viabilidade técnica do monitoramento de redes sociais
+- Definir ferramentas de PLN e análise de sentimento
+- Estabelecer clusters de interesse e segmentação comportamental
+- Validar preservação de privacidade e compliance LGPD
+
+**Fase 2: A Aproximação - Engajamento Sutil**
+- Estratégias de conteúdo "isca" por segmento (esporte, cultura, infraestrutura)
+- Scripts de abordagem não-política inicial
+- Metodologia de construção de relacionamento
+- Timing para transição entre fases
+
+**Fase 3: A Conversão - Ponte para Política**
+- Templates de transição natural interesse → política
+- Ofertas de valor personalizadas por segmento
+- Call-to-action suaves e progressivos
+- Métricas de conversão esperadas
+
+ 2. Abordagens Estratégicas Específicas - Validação
+
+**Engajamento por Causas Neutras**
+- Priorização de temas: esporte vs. infraestrutura vs. saúde
+- Estratégia para resgatar memórias positivas locais
+- Criação de grupos digitais segmentados
+- Conexão com futuros patrocinadores
+
+**Mobilização Digital**
+- Viabilidade jurídica dos abaixo-assinados digitais
+- Temas prioritários por região (asfaltamento, quadras, iluminação)
+- Sistema de validação de engajamento real
+- Mapeamento geográfico de adesão
+
+**Pesquisa em Tempo Real**
+- Metodologia de questionários conversacionais
+- Frequência de coleta de opinião
+- Formato de relatórios estratégicos
+- Validação no TRE da metodologia
+
+ 3. Monitoramento e Gestão de Crises - Implementação
+
+- Sistema de alertas para fake news e ataques
+- Protocolos de resposta rápida
+- Análise de sentimento sobre candidatos
+- Equipe necessária para monitoramento 24/7
+
+ 4. Definições Técnicas Atualizadas
+
+- Escopo exato das adaptações na ferramenta médica
+- Timeline realista considerando as três fases (ainda 2 meses?)
+- Arquitetura para escala de milhões com segmentação avançada
+- Integração de análise de sentimento e PLN
+
+ 5. Estrutura Jurídica e Compliance
+
+- Status da validação jurídica com nova abordagem em fases
+- Compliance específico para monitoramento de redes sociais
+- Estrutura de CNPJs considerando diferentes tipos de serviço
+- Metodologia de pesquisa atualizada para registro no TRE
+
+ 6. Modelo de Negócio Refinado
+
+**Planos Escalonados Confirmados:**
+- **Básico** (R$20-30k): Engajamento inicial e comunidade digital
+- **Intermediário** (R$35-45k): + Pesquisa e relatórios de opinião  
+- **Premium** (R$50-80k): + Monitoramento de crises + personalização avançada
+
+**Proposta de Valor Atualizada:**
+- ROI demonstrado em votos potenciais
+- Diferenciação total do marketing político tradicional
+- Abordagem não invasiva que constrói relacionamento real
+- Captação de base engajada (não só curtidas)
+
+ 7. Casos de Sucesso e Referências
+
+- Validação dos cases Obama e Macron como benchmarks
+- Adaptação para realidade brasileira
+- Métricas de sucesso específicas para nosso contexto
+- Exemplos práticos para demonstração
+
+ 8. Pipeline Comercial Atualizado
+
+- Status dos contatos políticos com nova proposta
+- Estratégia de demonstração das três fases
+- Material de apresentação com casos simulados
+- Cronograma de fechamento considerando complexidade
+
+ ✅ Próximos Passos Imediatos
+
+1. **Alberto**: 
+   - Validar estratégia das três fases com equipe jurídica
+   - Agendar com ex-governador apresentando nova abordagem
+   - Confirmar viabilidade dos planos escalonados
+
+2. **Mateus/Almeida**: 
+   - Escopo técnico detalhado para as três fases
+   - Timeline revisada considerando complexidade adicional
+   - Prototipagem de análise de sentimento e segmentação
+
+3. **Todos**: 
+   - Validação do modelo de investimento escalonado
+   - Definir métricas de ROI em votos potenciais
+   - Preparar demonstração prática das fases
+
+4. **Definir**: 
+   - Data limite para decisão GO/NO-GO
+   - Recursos necessários para implementação completa
+   - Equipe mínima para operação das três fases
+
+ ⚠️ Pontos de Atenção
+
+- **Complexidade Aumentada**: As três fases requerem mais desenvolvimento
+- **Timeline**: Verificar se 2 meses ainda é realista
+- **Compliance**: Monitoramento de redes sociais pode ter implicações legais
+- **Recursos**: Equipe necessária é maior que o escopo original
+- **Investimento**: Validar se R$20-50k cobre custos reais de operação
+
+ 🎯 Objetivos da Call
+
+1. **Aprovar ou ajustar** a estratégia das três fases
+2. **Redefinir timeline** realista para implementação
+3. **Validar modelo comercial** escalonado
+4. **Confirmar recursos** necessários (equipe, investimento)
+5. **Estabelecer próximos marcos** com datas específicas
+
+ ⚡ Urgência Mantida
+
+Decisão em máximo 1 semana para manter viabilidade do projeto para 2026.

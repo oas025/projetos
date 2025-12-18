@@ -1,0 +1,27 @@
+1. Funcionalidade Central (Monitoramento e Análise):
+    ◦ A funcionalidade principal discutida foi o monitoramento de comentários, postagens e interações em diferentes lugares da internet, o que inclui redes sociais (Twitter, Instagram, YouTube), grupos de WhatsApp e conversas individuais.
+    ◦ Essa ferramenta é vista como um diferencial competitivo significativo, capaz de "jogar o candidato na frente anos", agregar valor ao projeto, ser um "decisor na hora do fechamento" e uma "grande arma de negociação".
+    ◦ Ela permitirá a análise de sentimento do eleitor, segmentação por tópicos de interesse (esporte, música, arte, gastronomia) e localização demográfica.
+    ◦ A expertise da equipe é monitorar dados e transformá-los em tomada de decisão.
+    ◦ A solução visa munir o candidato com informações a favor dele e contra opositores, para debater e converter votos de maneira velada.
+    ◦ Não será entregue a ferramenta ou acesso total ao dashboard aos candidatos, pois é considerado "nosso ouro".
+2. Estratégia de Vendas e Precificação:
+    ◦ A solução será vendida como um "combo de soluções" e tudo junto para agregar valor ao projeto, não separadamente.
+    ◦ O projeto busca alcançar milhões de reais e "colocar um bom dinheiro no bolso".
+    ◦ Alberto, como vendedor e estrategista político, adota uma abordagem de negociação que não inicia com o preço, mas cria três cenários e sente o engajamento do cliente para depois encaixar um preço. Ele possui expertise para identificar a verba dos candidatos e "cutucar o ego de cada um".
+    ◦ A apresentação deve "deslumbrar", e a ideia é preparar demonstrações do serviço em tempo real para candidatos, mostrando o que está sendo falado sobre eles.
+3. Operação e Parceria:
+    ◦ A estratégia envolve a criação de grupos e comunidades de forma orgânica, aquecendo pessoas em tópicos de interesse antes de introduzir o contexto político, com a IA administrando esses grupos.
+    ◦ Será necessário montar um grande escritório em Goiana para acompanhar de perto, alinhar dados e pensar estratégias executáveis dentro das ferramentas.
+    ◦ A fase de coleta de dados e monitoramento pela IA ocorreria de novembro a maio, preparando dados para estratégias.
+    ◦ Discutiu-se a necessidade de um servidor "fora das quatro linhas" (ilegal/off-the-books) para a reta final da campanha, para dar uma vantagem de comunicação nas últimas 48 horas.
+    ◦ A parte jurídica está sendo avaliada para garantir que tudo esteja "bem amparado" e os riscos controlados.
+    ◦ A equipe de desenvolvimento precisa estar sempre alinhada com a equipe de estratégia dos candidatos para extrair o máximo de resultado.
+    ◦ A reunião abordou a formação de uma nova empresa/CNPJ para o projeto, com uma divisão societária proposta: 50% para Alberto/sua empresa e 50% para Ilum e Fluxon (sendo 20% Ilum e 30% Fluxon).
+    ◦ O custo de desenvolvimento inicial, proposto em R$20.000 mensais por 2 meses (total de R$40.000), seria dividido 50/50 entre Alberto e Ilum, destinado a alocar tempo da equipe para pivotar a solução existente e desenvolver novas funcionalidades. Alberto sugeriu que, se a parceria fosse de sócios, ele não deveria arcar com os custos de desenvolvimento da ferramenta, mas sim com os custos comerciais e de vendas, questionando a lógica de dividir os custos de desenvolvimento se a Ilum e a Fluxon também seriam sócias e lucrariam. No final, Alberto concordou em avançar com o planejamento dos custos.
+4. Prazos e Próximos Passos:
+    ◦ A meta é começar a rodar o projeto até novembro.
+    ◦ O contrato de desenvolvimento seria de dois meses, mas a intenção é entregar antes.
+    ◦ Há uma demonstração agendada para 27 de setembro com Tarcísio, para a qual precisaria de algo visível e alinhamento sobre o que falar.
+    ◦ A equipe focaria primeiramente nesta solução política antes de retornar ao projeto médico.
+Em resumo, a reunião foi crucial para alinhar expectativas, definir a proposta de valor, discutir a estrutura de parceria e financiamento, e estabelecer os próximos passos para o desenvolvimento e lançamento desta ferramenta inovadora no cenário político.

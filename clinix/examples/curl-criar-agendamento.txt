@@ -1,0 +1,291 @@
+========================================
+cURL COMPLETO: Criar Agendamento
+========================================
+
+curl -X POST 'https://clinix-cadastro.azurewebsites.net/api/v1/Consulta/gravaconsulta' \
+-H 'Authorization: Bearer TOKEN_AQUI' \
+-H 'Content-Type: application/json' \
+-H 'Accept: application/json' \
+-H 'Origin: https://gestao.clinix.app.br' \
+-d '{
+  "clinicaID": 57,
+  "profissionalId": 1674,
+  "cadeiraId": 62,
+  "especialidadeId": 13,
+  "pacienteId": 46711,
+  "celularPaciente": "16994660219",
+  "planoId": 77,
+  "dataInicio": "2025-11-13T12:00:00.000Z",
+  "hora_inicio": "09:00",
+  "tempoConsulta": 10,
+  "tipoAtendimentoPersonalizadoId": 807,
+  "statusConsulta": 1,
+  "retorno": false,
+  "tipoRetorno": "1",
+  "periodoRetorno": "1",
+  "observacao": "",
+  "origemRelacionamentoId": null,
+  "origemRelacionamentoOutros": null,
+  "dataFinal": "2025-11-13T12:10:00.000Z",
+  "tituloConsulta": "Abílio Diniz",
+  "contaId": 62,
+  "painelLeadsId": null,
+  "pacienteSimples": false,
+  "usuario": "Henrique Lopes da Silva",
+  "pacienteElegivel": null
+}'
+
+========================================
+CONFIGURAÇÃO NO N8N (HTTP REQUEST)
+========================================
+
+Method: POST
+URL: https://clinix-cadastro.azurewebsites.net/api/v1/Consulta/gravaconsulta
+
+Headers (4 itens):
+┌──────────────────────┬─────────────────────────────────────────┐
+│ Name                 │ Value                                   │
+├──────────────────────┼─────────────────────────────────────────┤
+│ Authorization        │ ={{ $item(0).$node["obtem..."].json... │
+│ Content-Type         │ application/json                        │
+│ Accept               │ application/json                        │
+│ Origin               │ https://gestao.clinix.app.br            │
+└──────────────────────┴─────────────────────────────────────────┘
+
+Body Parameters (25 itens):
+┌──────────────────────────────────┬──────────────────────────┐
+│ Name                             │ Value                    │
+├──────────────────────────────────┼──────────────────────────┤
+│ clinicaID                        │ 57                       │
+│ profissionalId                   │ 1674                     │
+│ cadeiraId                        │ 62                       │
+│ especialidadeId                  │ 13                       │
+│ pacienteId                       │ 46711                    │
+│ celularPaciente                  │ 16994660219              │
+│ planoId                          │ 77                       │
+│ dataInicio                       │ 2025-11-13T12:00:00.000Z │
+│ hora_inicio                      │ 09:00                    │
+│ tempoConsulta                    │ 10                       │
+│ tipoAtendimentoPersonalizadoId   │ 807                      │
+│ statusConsulta                   │ 1                        │
+│ retorno                          │ false                    │
+│ tipoRetorno                      │ 1                        │
+│ periodoRetorno                   │ 1                        │
+│ observacao                       │                          │
+│ origemRelacionamentoId           │ ={{ null }}              │
+│ origemRelacionamentoOutros       │ ={{ null }}              │
+│ dataFinal                        │ 2025-11-13T12:10:00.000Z │
+│ tituloConsulta                   │ Abílio Diniz             │
+│ contaId                          │ 62                       │
+│ painelLeadsId                    │ ={{ null }}              │
+│ pacienteSimples                  │ false                    │
+│ usuario                          │ Henrique Lopes da Silva  │
+│ pacienteElegivel                 │ ={{ null }}              │
+└──────────────────────────────────┴──────────────────────────┘
+
+========================================
+VALORES PARA COPIAR (NOMES DOS CAMPOS)
+========================================
+
+clinicaID
+profissionalId
+cadeiraId
+especialidadeId
+pacienteId
+celularPaciente
+planoId
+dataInicio
+hora_inicio
+tempoConsulta
+tipoAtendimentoPersonalizadoId
+statusConsulta
+retorno
+tipoRetorno
+periodoRetorno
+observacao
+origemRelacionamentoId
+origemRelacionamentoOutros
+dataFinal
+tituloConsulta
+contaId
+painelLeadsId
+pacienteSimples
+usuario
+pacienteElegivel
+
+========================================
+VALORES PARA COPIAR (VALORES FIXOS)
+========================================
+
+57
+1674
+62
+13
+46711
+16994660219
+77
+2025-11-13T12:00:00.000Z
+09:00
+10
+807
+1
+false
+1
+1
+
+={{ null }}
+={{ null }}
+2025-11-13T12:10:00.000Z
+Abílio Diniz
+62
+={{ null }}
+false
+Henrique Lopes da Silva
+={{ null }}
+
+========================================
+VALORES DINÂMICOS (VARIÁVEIS N8N)
+========================================
+
+Se você quiser usar dados de um node anterior:
+
+pacienteId: ={{ $json.paciente_id }}
+celularPaciente: ={{ $json.paciente_celular }}
+tituloConsulta: ={{ $json.paciente_nome }}
+especialidadeId: ={{ $json.especialidade_id }}
+dataInicio: ={{ $json.data_agendamento }}
+dataFinal: ={{ $json.data_fim_agendamento }}
+observacao: ={{ "Recuperação venda #" + $json.orcamento_id }}
+
+========================================
+DESCRIÇÃO DOS CAMPOS
+========================================
+
+clinicaID (57):
+  ID da clínica onde será realizado o atendimento
+
+profissionalId (1674):
+  ID do profissional que vai atender (dentista)
+
+cadeiraId (62):
+  ID da cadeira/sala de atendimento
+
+especialidadeId (13):
+  ID da especialidade (Ortodontia, Implantodontia, etc.)
+
+pacienteId (46711):
+  ID do paciente no sistema
+
+celularPaciente ("16994660219"):
+  Celular do paciente (sem formatação)
+
+planoId (77):
+  ID do plano (77 = Plano Particular)
+
+dataInicio ("2025-11-13T12:00:00.000Z"):
+  Data/hora de início em UTC (ISO 8601)
+
+hora_inicio ("09:00"):
+  Hora local no formato HH:mm
+
+tempoConsulta (10):
+  Duração da consulta em minutos
+
+tipoAtendimentoPersonalizadoId (807):
+  Tipo de atendimento (descobrir via API ou DevTools)
+
+statusConsulta (1):
+  1 = AGENDADO
+  2 = CONFIRMADO
+  3 = REALIZADO
+  4 = FALTOU
+  5 = CANCELADO
+
+retorno (false):
+  Se é consulta de retorno ou primeira consulta
+
+tipoRetorno ("1"):
+  Tipo de retorno (usado se retorno = true)
+
+periodoRetorno ("1"):
+  Período do retorno (usado se retorno = true)
+
+observacao (""):
+  Observações sobre o agendamento
+
+origemRelacionamentoId (null):
+  Origem do lead/relacionamento (se aplicável)
+
+origemRelacionamentoOutros (null):
+  Outra origem (campo livre)
+
+dataFinal ("2025-11-13T12:10:00.000Z"):
+  Data/hora de término em UTC (dataInicio + tempoConsulta)
+
+tituloConsulta ("Abílio Diniz"):
+  Título que aparece na agenda (geralmente nome do paciente)
+
+contaId (62):
+  ID da conta principal no sistema
+
+painelLeadsId (null):
+  ID do lead (se veio do painel de leads)
+
+pacienteSimples (false):
+  Se é cadastro simplificado ou completo
+
+usuario ("Henrique Lopes da Silva"):
+  Nome do usuário que está criando o agendamento
+
+pacienteElegivel (null):
+  Campo de elegibilidade (aparentemente não usado)
+
+========================================
+COMO CALCULAR dataInicio e dataFinal
+========================================
+
+JavaScript para calcular:
+
+// Agendar para daqui a 7 dias às 14h
+const dataInicio = new Date();
+dataInicio.setDate(dataInicio.getDate() + 7);
+dataInicio.setHours(14, 0, 0, 0);
+
+// Data final = início + 20 minutos
+const dataFinal = new Date(dataInicio);
+dataFinal.setMinutes(dataFinal.getMinutes() + 20);
+
+// Converter para ISO
+const dataInicioISO = dataInicio.toISOString();
+const dataFinalISO = dataFinal.toISOString();
+
+// Hora local
+const horaInicio = "14:00";
+
+========================================
+RESPOSTA ESPERADA (SUCESSO)
+========================================
+
+{
+  "success": true,
+  "data": {
+    "id": 12345,
+    "consultaId": 12345
+  },
+  "message": "Consulta criada com sucesso"
+}
+
+========================================
+RESPOSTA ESPERADA (ERRO)
+========================================
+
+{
+  "success": false,
+  "message": "Horário já ocupado",
+  "errors": [
+    {
+      "field": "dataInicio",
+      "message": "O profissional já possui agendamento neste horário"
+    }
+  ]
+}

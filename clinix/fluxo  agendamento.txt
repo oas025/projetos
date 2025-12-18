@@ -1,0 +1,104 @@
+ ┌─────────────────────────────────────────────────────────────────
+  ────────────┐
+  │                    FLUXO DE AGENDAMENTO - CLINIX
+              │
+  └─────────────────────────────────────────────────────────────────
+  ────────────┘
+
+      ┌──────────────┐
+      │   INÍCIO     │
+      └──────┬───────┘
+             │
+             ▼
+  ┌─────────────────────────────────────┐
+  │  1️⃣  VERIFICAR SE CLIENTE EXISTE    │
+  │                                     │
+  │  GET /api/v1/Paciente/buscarpaciente│
+  │  ?nome=João&clinicaId=57            │
+  │                                     │
+  │  → Busca por nome, CPF ou telefone  │
+  └──────────────┬──────────────────────┘
+                 │
+         ┌───────┴───────┐
+         │               │
+         ▼               ▼
+  ┌──────────────┐ ┌──────────────────────────────┐
+  │  ENCONTROU   │ │  NÃO ENCONTROU               │
+  │              │ │                              │
+  │  Usar ID     │ │  2️⃣  CADASTRAR PACIENTE       │
+  │  existente   │ │                              │
+  │              │ │  POST /api/v1/Paciente       │
+  │              │ │  {                           │
+  │              │ │    "nome": "João Silva",     │
+  │              │ │    "celular": "11999999999", │
+  │              │ │    "cpf": "12345678900",     │
+  │              │ │    "clinicaId": 57           │
+  │              │ │  }                           │
+  │              │ │                              │
+  │              │ │  → Retorna pacienteId        │
+  └──────┬───────┘ └──────────────┬───────────────┘
+         │                        │
+         └───────────┬────────────┘
+                     │
+                     ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  3️⃣  OBTER DADOS DA AGENDA                                   │
+  │                                                             │
+  │  ┌─────────────────────────────────────────────────────┐   │
+  │  │ GET /api/v1/profissionalclinica/idclinica?id=57     │   │
+  │  │ → Lista de profissionais disponíveis                │   │
+  │  └─────────────────────────────────────────────────────┘   │
+  │                                                             │
+  │  ┌─────────────────────────────────────────────────────┐   │
+  │  │ GET /api/v1/Procedimento/procedimentoclinica?id=57  │   │
+  │  │ → Lista de procedimentos/serviços                   │   │
+  │  └─────────────────────────────────────────────────────┘   │
+  │                                                             │
+  │  ┌─────────────────────────────────────────────────────┐   │
+  │  │ GET /api/v1/Especialidade                           │   │
+  │  │ → Lista de especialidades                           │   │
+  │  └─────────────────────────────────────────────────────┘   │
+  └─────────────────────────────┬───────────────────────────────┘
+                                │
+                                ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  4️⃣  VERIFICAR DISPONIBILIDADE                               │
+  │                                                             │
+  │  POST /api/v1/Consulta/filtroagenda                         │
+  │  {                                                          │
+  │    "clinicaId": 57,                                         │
+  │    "dataInicio": "2025-12-02T00:00:00.000Z",               │
+  │    "dataFinal": "2025-12-02T23:59:59.000Z",                │
+  │    "profissionalId": 123,      ← (0 = todos)               │
+  │    "statusConsulta": 0                                      │
+  │  }                                                          │
+  │                                                             │
+  │  → Retorna horários JÁ OCUPADOS naquele dia                │
+  │  → Você precisa calcular os horários LIVRES                │
+  └─────────────────────────────┬───────────────────────────────┘
+                                │
+                                ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  5️⃣  CRIAR O AGENDAMENTO                                     │
+  │                                                             │
+  │  POST /api/v1/Consulta/gravaconsulta                        │
+  │  {                                                          │
+  │    "pacienteId": 456,                                       │
+  │    "profissionalId": 123,                                   │
+  │    "clinicaId": 57,                                         │
+  │    "data": "2025-12-10",                                    │
+  │    "horaInicio": "14:00",                                   │
+  │    "horaFinal": "15:00",                                    │
+  │    "procedimentos": [{ "id": 789 }],                        │
+  │    "statusConsulta": 1,        ← (1 = Agendado)            │
+  │    "tipoConsulta": 1                                        │
+  │  }                                                          │
+  │                                                             │
+  │  → Retorna consultaId do agendamento criado                │
+  └─────────────────────────────┬───────────────────────────────┘
+                                │
+                                ▼
+                      ┌──────────────┐
+                      │   ✅ FIM      │
+                      │  Agendado!   │
+                      └──────────────┘

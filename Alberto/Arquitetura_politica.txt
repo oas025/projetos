@@ -1,0 +1,207 @@
+ Arquitetura:
+
+  1. COLETA DE DADOS:
+     - Google Alerts API → URLs novas
+     - RSS Feeds de sites de notícias
+     - YouTube Data API (oficial)
+     - Twitter API v2 (oficial)
+     - Instagram Basic Display API
+     ↓
+  2. PROCESSAMENTO (JINA):
+     - Jina Reader → Extrai conteúdo dos URLs
+     - Jina Embeddings → Analisa relevância
+     - Jina Reranker → Prioriza por importância
+     ↓
+  3. FILTROS E VALIDAÇÃO:
+     - Verifica se menciona seu cantor
+     - Remove duplicatas
+     - Classifica por relevância
+     ↓
+  4. DISTRIBUIÇÃO:
+     - WhatsApp Business API
+     - Telegram Bot
+     - Discord Webhook
+
+
+
+Estratégia de Descoberta Ampla:
+
+  1. Google News + Google Alerts (Base Principal)
+
+  # Configuração no Google Alerts:
+  - Termo: "nome do cantor"
+  - Região: Brasil
+  - Idioma: Português
+  - Frequência: Assim que acontecer
+  - Fontes: Todas (inclui sites pequenos)
+
+  Vantagem: O Google indexa sites pequenos do interior que você nem conhece!
+
+  2. Google Custom Search API (Programático)
+
+  // No N8N - Busca programática a cada 12h
+  const searches = [
+    '"Nome do Cantor" site:.br',
+    '"Nome do Cantor" "show" OR "música" OR "lançamento"',
+    '"Nome do Cantor" site:.com.br -g1 -uol -folha' // Exclui grandes, foca pequenos
+  ];
+
+  // Parâmetros importantes:
+  dateRestrict: 'd1', // Últimas 24 horas
+  cr: 'countryBR',     // Só Brasil
+  num: 100            // Máximo de resultados
+
+  3. Operadores de Busca Avançados
+
+  Buscas estratégicas:
+  - "Nome do Cantor" site:.br -site:g1.globo.com -site:uol.com.br
+    # Encontra sites menores
+
+  - "Nome do Cantor" "cidade pequena" OR "interior"
+    # Foca em coberturas regionais
+
+  - "Nome do Cantor" site:*.gov.br
+    # Prefeituras que divulgam shows
+
+  - "Nome do Cantor" inurl:noticia OR inurl:cultura
+    # Seções específicas
+
+  🔄 Workflow Completo N8N:
+
+  1. DESCOBERTA (a cada 6h):
+     ├─ Google Custom Search API → URLs novas
+     ├─ Bing News Search API → Cobertura adicional
+     ├─ RSS Aggregators → Feedspot/Feedly Brasil
+     └─ NewsAPI.org → Fontes brasileiras
+          ↓
+  2. PROCESSAMENTO COM JINA:
+     ├─ Jina Reader → Extrai conteúdo de TODOS os URLs
+     ├─ Filtra menções reais vs citações casuais
+     └─ Remove duplicatas (mesmo conteúdo, sites diferentes)
+          ↓
+  3. ENRIQUECIMENTO:
+     ├─ Identifica localização da notícia
+     ├─ Classifica tipo (show/lançamento/polêmica)
+     └─ Prioriza por relevância
+          ↓
+  4. ARMAZENAMENTO:
+     └─ Banco de dados com sites descobertos
+         (vai crescendo sua lista!)
+
+  💡 Técnica "Descoberta Progressiva":
+
+  Fase 1: Captura Ampla
+
+  // N8N - HTTP Request Node
+  const searchQueries = [
+    // Busca genérica
+    `"${artistName}" Brasil notícia`,
+
+    // Por região
+    `"${artistName}" nordeste`,
+    `"${artistName}" "rio grande do sul"`,
+
+    // Por tipo de evento
+    `"${artistName}" festival`,
+    `"${artistName}" prefeitura show`,
+  ];
+
+  // Para cada resultado:
+  const url = result.link;
+  const content = await fetch(`https://r.jina.ai/${url}`);
+  // Salva o domínio se for relevante
+
+  Fase 2: Aprendizado Contínuo
+
+  // Banco de dados local
+  const discoveredSites = [
+    'portalinterior-sp.com.br',  // Descoberto em 01/01
+    'diariodosertao-ba.com.br',  // Descoberto em 15/01
+    // Lista vai crescendo...
+  ];
+
+  // Depois monitora esses sites diretamente!
+
+  🛠️ Ferramentas Complementares:
+
+  1. NewsAPI.org
+
+  - Tem fontes brasileiras menores
+  - API gratuita (limitada)
+  - Boa para descoberta inicial
+
+  2. Feedspot
+
+  - Agrega RSS de blogs brasileiros
+  - Muitos sites regionais
+
+  3. Social Mention
+
+  - Busca em blogs e fóruns
+  - Pega sites que Google às vezes perde
+
+  4. Programmable Search Engine (Google)
+
+  // Crie um motor customizado
+  {
+    "sites": ["*.br", "*.com.br"],
+    "excludeSites": [
+      "g1.globo.com",
+      "uol.com.br",
+      "folha.com.br"
+    ],
+    "searchType": "news"
+  }
+
+  📊 Exemplo Prático N8N:
+
+  Nodes:
+    1. Schedule (2x ao dia):
+       - 08:00 e 20:00
+
+    2. Google Search API:
+       - Input: "Gusttavo Lima" site:.br -g1
+       - Output: 50 URLs
+
+    3. Loop através dos URLs:
+       - Jina Reader: https://r.jina.ai/${url}
+
+    4. Filtro inteligente:
+       - Contém nome? ✓
+       - É notícia nova? ✓
+       - Já foi enviada? ✗
+
+    5. Envia para grupos:
+       - WhatsApp/Telegram
+
+  🎯 Dica de Ouro:
+
+  Monitore agregadores regionais:
+  - site:feiradesantana.ba.gov.br
+  - site:diarioonline.com.br
+  - site:opovo.com.br
+  - site:jornaldocomercio.com.br
+
+  Esses grandes regionais frequentemente citam fontes menores!
+
+  ⚡ Resumo da Solução:
+
+  1. Google é seu "descobridor" - ele acha os sites pequenos
+  2. Jina é seu "processador" - limpa e extrai o conteúdo
+  3. N8N é seu "orquestrador" - automatiza tudo
+  4. Banco de dados - vai aprendendo novos sites com o tempo
+
+
+
+APIS PARA A POLITICA
+
+1. Monitoramento de Redes Sociais:
+    - Mention.com ou Brand24 (pagos, mas completos)
+    - IFTTT para automações simples
+    - APIs oficiais das plataformas
+  2. Para YouTube específicamente:
+    - YouTube Data API v3 (gratuita com limites)
+    - Canal RSS do YouTube
+  3. Para Instagram:
+    - Instagram Basic Display API (oficial)
+    - Ferramentas como Later ou Hootsuite

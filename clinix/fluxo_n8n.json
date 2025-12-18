@@ -1,0 +1,4486 @@
+{
+  "name": "CLINIX",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "397e5627-5495-4f7f-bc1e-0dc27a5d7c19",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://clinix-autenticacao.azurewebsites.net/api/v1/entrar",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Origin",
+              "value": "https://gestao.clinix.app.br"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "login",
+              "value": "henrique.silva@nst.com.br"
+            },
+            {
+              "name": "password",
+              "value": "Teste@123"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "846168f0-d4cb-4394-abed-6096aa759492",
+      "name": "gera token de acesso"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrai o token JWT da resposta de autenticação\n  const response = $input.item.json;\n\n  // Valida se a autenticação foi bem-sucedida\n  if (!response.success || !response.data || !response.data.token) {\n    throw new Error('Falha na autenticação: Token não encontrado');\n  }\n\n  // Extrai informações importantes\n  const token = response.data.token;\n  const idUsuario = response.data.user.idUsuario;\n  const idConta = response.data.user.idConta;\n  const nomeUsuario = response.data.user.nomeUsuario;\n\n  // Retorna dados estruturados para uso posterior\n  return {\n    json: {\n      token: token,\n      bearerToken: `Bearer ${token}`,  // Já formatado para uso\n      idUsuario: idUsuario,\n      idConta: idConta,\n      nomeUsuario: nomeUsuario,\n      authenticated: true\n    }\n  };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        0
+      ],
+      "id": "4cc633bc-8dfb-4ab9-9327-5e2123d03baa",
+      "name": "obtem variaveis de requsição"
+    },
+    {
+      "parameters": {
+        "url": "=https://clinix-financeiro.azurewebsites.net/api/v1/painelorcamento",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "contaId",
+              "value": "={{ $json.idConta }}"
+            },
+            {
+              "name": "clinicaId",
+              "value": "0"
+            },
+            {
+              "name": "inicio",
+              "value": "={{ $now.minus({ months: 12 }).toISO() }}"
+            },
+            {
+              "name": "final",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "tipoRecorrencia",
+              "value": "0"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $json.bearerToken }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        576,
+        0
+      ],
+      "id": "7a4bb25d-ca1b-4b54-9fd8-31c461833f57",
+      "name": "Busca Orçamentos"
+    },
+    {
+      "parameters": {
+        "jsCode": " // Extrai os dados da resposta\n  const response = $input.item.json;\n\n  // Valida se há dados\n  if (!response.success || !response.data) {\n    return [];\n  }\n\n  // Filtra APENAS orçamentos PERDIDOS (statusCard = 4)\n  const vendasPerdidas = response.data.filter(item => item.statusCard === 4);\n\n  // Mapeia os dados para um formato limpo\n  const resultado = vendasPerdidas.map(venda => ({\n    // Identificação\n    orcamentoId: venda.orcamentoId,\n    nomeOrcamento: venda.nome,\n\n    // Paciente\n    pacienteId: venda.pacienteId,\n    nomePaciente: venda.nomePaciente,\n    celular: venda.celular,\n\n    // Profissional\n    profissionalId: venda.profissionalId,\n    profissionalNome: venda.profissionalNome,\n\n    // Valores\n    valor: venda.valor,\n\n    // Datas\n    dataOrcamento: venda.dataOrcamento,\n    dataPerda: venda.dataPerda,\n\n    // Motivo da Perda\n    motivoPerdaId: venda.motivoPerdaId,\n    nomeMotivoPerda: venda.nomeMotivoPerda,\n\n    // Extras\n    clinicaNome: venda.nomeClinica,\n    especialidadeId: venda.especialidadeId\n  }));\n\n  // Retorna os dados formatados\n  return resultado.map(item => ({ json: item }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        0
+      ],
+      "id": "f2833908-528f-4bd2-98f0-87afa65b4342",
+      "name": "Filtra somente PERDIDOS"
+    },
+    {
+      "parameters": {
+        "content": "## LOGICA QUE BUSCA ORÇAMENTOS PERDIDOS DE DETERMINADA DATA\n",
+        "width": 368
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        -32
+      ],
+      "id": "ba61d1ce-17f4-4541-9a3f-0deb5b047f34",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "url": "=https://clinix-financeiro.azurewebsites.net/api/v1/negociacaoorcamento/orcamento",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "orcamentoId",
+              "value": "={{ $json.orcamentoId }}"
+            },
+            {
+              "name": "contaId",
+              "value": "={{ $item(\"0\").$node[\"obtem variaveis de requsição\"].json[\"idConta\"] }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $item(\"0\").$node[\"obtem variaveis de requsição\"].json[\"bearerToken\"] }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        992,
+        272
+      ],
+      "id": "9b31ea8c-fce4-48bc-bcd8-6bb5464c552e",
+      "name": "Buscar Detalhes Orçamento"
+    },
+    {
+      "parameters": {
+        "tableId": "vendas_perdidas",
+        "dataToSend": "=defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "orcamento_id",
+              "fieldValue": "={{ $item(\"0\").$node[\"detalha procedimentos\"].json[\"orcamentoId\"] }}"
+            },
+            {
+              "fieldId": "paciente_id",
+              "fieldValue": "={{ $item(\"2\").$node[\"Buscar Detalhes Orçamento\"].json[\"data\"][\"negociacao\"][\"orcamento\"][\"pacienteId\"] }}"
+            },
+            {
+              "fieldId": "paciente_nome",
+              "fieldValue": "={{ $item(\"0\").$node[\"detalha procedimentos\"].json[\"pacienteNome\"] }}"
+            },
+            {
+              "fieldId": "paciente_celular",
+              "fieldValue": "={{ $item(\"0\").$node[\"detalha procedimentos\"].json[\"pacienteCelular\"] }}"
+            },
+            {
+              "fieldId": "paciente_email",
+              "fieldValue": "={{ $item(\"0\").$node[\"Buscar Detalhes Orçamento\"].json[\"data\"][\"negociacao\"][\"orcamento\"][\"paciente\"][\"email\"] }}"
+            },
+            {
+              "fieldId": "paciente_cpf",
+              "fieldValue": "={{ $item(\"0\").$node[\"Buscar Detalhes Orçamento\"].json[\"data\"][\"negociacao\"][\"orcamento\"][\"paciente\"][\"cpf\"] }}"
+            },
+            {
+              "fieldId": "paciente_data_nascimento",
+              "fieldValue": "={{ $item(\"2\").$node[\"Buscar Detalhes Orçamento\"].json[\"data\"][\"negociacao\"][\"orcamento\"][\"paciente\"][\"dataNascimento\"] }}"
+            },
+            {
+              "fieldId": "valor_total",
+              "fieldValue": "={{ $item(\"0\").$node[\"Buscar Detalhes Orçamento\"].json[\"data\"][\"negociacao\"][\"valorTotal\"] }}"
+            },
+            {
+              "fieldId": "conta_id",
+              "fieldValue": "={{ $item(\"0\").$node[\"obtem variaveis de requsição\"].json[\"idConta\"] }}"
+            },
+            {
+              "fieldId": "clinica_id",
+              "fieldValue": "={{ $item(\"0\").$node[\"Buscar Detalhes Orçamento\"].json[\"data\"][\"negociacao\"][\"orcamento\"][\"clinicaId\"] }}"
+            },
+            {
+              "fieldId": "json_orcamento",
+              "fieldValue": "={{ $node[\"Buscar Detalhes Orçamento\"].json }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        272
+      ],
+      "id": "c3120473-5b53-464f-a8e2-f59ff9225e1b",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rRhz1kZyYEKJ20Xf",
+          "name": "generico"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrai dados da resposta de detalhes do orçamento\n  const response = $input.item.json;\n\n  // Valida se há dados\n  if (!response.success || !response.data || !response.data.procedimentos) {\n    return [];\n  }\n\n  // Extrai informações do orçamento\n  const orcamento = response.data.negociacao?.orcamento || {};\n  const paciente = orcamento.paciente || {};\n\n  // Processa cada procedimento\n  const procedimentos = response.data.procedimentos.map(proc => {\n    const s = proc.s;\n\n    // Monta descrição completa\n    let descricaoCompleta = s.descricaoProcedimento || s.procedimento.nome;\n\n    // Adiciona região se existir\n    if (proc.dadosRegiao && proc.dadosRegiao.length > 0) {\n      const regioes = proc.dadosRegiao.map(r => r.descricao).join(', ');\n      descricaoCompleta += ` - ${regioes}`;\n    }\n\n    // Adiciona dentes se existir\n    if (proc.dentesSelecionados && proc.dentesSelecionados.length > 0) {\n      const dentes = proc.dentesSelecionados.join(', ');\n      descricaoCompleta += ` (Dentes: ${dentes})`;\n    }\n\n    // Adiciona faces se existir\n    if (proc.facesDentesSelecionados && proc.facesDentesSelecionados.length > 0) {\n      const faces = proc.facesDentesSelecionados\n        .map(f => `${f.denteId}: ${f.faces.join(', ')}`)\n        .join(' | ');\n      descricaoCompleta += ` - Faces: ${faces}`;\n    }\n\n    // Status do procedimento\n    const statusMap = {\n      1: 'PENDENTE',\n      2: 'EM ANDAMENTO',\n      3: 'FINALIZADO',\n      4: 'CANCELADO'\n    };\n\n    return {\n      // Informações do Paciente/Orçamento\n      orcamentoId: s.orcamentoId,\n      pacienteNome: paciente.nome,\n      pacienteCelular: paciente.celular,\n      pacienteCPF: paciente.cpf,\n\n      // Procedimento\n      procedimentoId: s.procedimentoId,\n      nomeProcedimento: s.procedimento.nome,\n      codigoTUSS: s.procedimento.tuss,\n      descricaoCompleta: descricaoCompleta,\n\n      // Região/Dentes\n      regiao: proc.dadosRegiao?.map(r => r.descricao).join(', ') || 'N/A',\n      dentes: proc.dentesSelecionados?.join(', ') || 'N/A',\n\n      // Valores\n      valorOriginal: s.valor,\n      valorDesconto: s.valorDesconto,\n      valorFinal: s.valorFinal,\n\n      // Profissional e Plano\n      profissionalNome: s.profissional.nome,\n      planoNome: s.plano.nome,\n\n      // Status\n      status: statusMap[s.status] || 'DESCONHECIDO',\n      statusId: s.status,\n      aprovado: s.aprovado,\n\n      // Observações\n      observacao: s.observacao || ''\n    };\n  });\n\n  // Retorna os procedimentos formatados\n  return procedimentos.map(item => ({ json: item }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        272
+      ],
+      "id": "6e13d741-2a9e-444d-ac6f-bd32243de855",
+      "name": "detalha procedimentos"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n  // ========================================\n  // NODE: Preparar Dados Completos para Supabase\n  // ========================================\n\n  // Extrai dados da resposta de detalhes do orçamento\n  const detalhes = $input.item.json;\n\n  // Acessa os dados da venda perdida (node anterior \"Filtra somente PERDIDOS\")\n  const vendaPerdida = $item(0).$node[\"Filtra somente PERDIDOS\"].json;\n\n  // Valida se há dados válidos\n  if (!detalhes.success || !detalhes.data) {\n    throw new Error('Dados inválidos recebidos do endpoint de detalhes');\n  }\n\n  const data = detalhes.data;\n  const negociacao = data.negociacao || {};\n  const orcamento = negociacao.orcamento || {};\n  const paciente = orcamento.paciente || {};\n  const profissionalResponsavel = orcamento.profissionalResponsavel || {};\n\n  // ========================================\n  // 1. IDENTIFICADORES\n  // ========================================\n  const orcamento_id = vendaPerdida.orcamentoId || orcamento.id;\n  const painel_orcamento_id = vendaPerdida.id;\n\n  // ========================================\n  // 2. DADOS DO PACIENTE (8 campos)\n  // ========================================\n  const paciente_id = paciente.id;\n  const paciente_nome = paciente.nome;\n  const paciente_celular = paciente.celular;\n  const paciente_email = paciente.email;\n  const paciente_cpf = paciente.cpf;\n  const paciente_data_nascimento = paciente.dataNascimento;\n  const paciente_cidade = paciente.cidade;\n  const paciente_estado = paciente.estado;\n\n  // ========================================\n  // 3. DADOS DO PROFISSIONAL (4 campos)\n  // ========================================\n  const profissional_id = vendaPerdida.profissionalId || orcamento.profissionalResponsavelId;\n  const profissional_nome = vendaPerdida.profissionalNome;\n  const profissional_email = profissionalResponsavel.email || null;\n  const profissional_celular = profissionalResponsavel.celular || null;\n\n  // ========================================\n  // 4. DADOS DA CLÍNICA (3 campos)\n  // ========================================\n  const clinica_id = vendaPerdida.clinicaId || orcamento.clinicaId;\n  const clinica_nome = vendaPerdida.nomeClinica;\n  const conta_id = orcamento.contaId;\n\n  // ========================================\n  // 5. DADOS DA ESPECIALIDADE (2 campos)\n  // ========================================\n  const especialidade_id = vendaPerdida.especialidadeId;\n  const especialidade_nome = vendaPerdida.nomeEspecialidade;\n\n  // ========================================\n  // 6. VALORES FINANCEIROS (4 campos)\n  // ========================================\n  const valor_total = negociacao.valorTotal || vendaPerdida.valor || 0;\n  const valor_desconto_total = negociacao.valorTotalDesconto || 0;\n  const valor_acrescimo_total = negociacao.valorTotalAcrescimo || 0;\n  const valor_final = negociacao.valorTotal || vendaPerdida.valor || 0;\n\n  // ========================================\n  // 7. STATUS E MOTIVO DA PERDA (4 campos)\n  // ========================================\n  const status_card = vendaPerdida.statusCard;\n  const statusMap = {\n    1: 'EM_ABERTO',\n    2: 'EM_NEGOCIACAO',\n    3: 'APROVADO',\n    4: 'PERDIDO'\n  };\n  const status_descricao = statusMap[vendaPerdida.statusCard] || 'DESCONHECIDO';\n  const motivo_perda_id = vendaPerdida.motivoPerdaId;\n  const motivo_perda_nome = vendaPerdida.nomeMotivoPerda;\n\n  // ========================================\n  // 8. DATAS (5 campos)\n  // ========================================\n  const data_orcamento = vendaPerdida.dataOrcamento || orcamento.dataCadastro;\n  const data_aprovacao = vendaPerdida.dataAprovacao !== '0001-01-01T00:00:00'\n    ? vendaPerdida.dataAprovacao\n    : null;\n  const data_perda = vendaPerdida.dataPerda;\n  const data_movimentacao_negociacao = vendaPerdida.dataMovimentacaoNegociacao;\n  const data_retorno = vendaPerdida.dataRetorno;\n\n  // ========================================\n  // 9. PROCEDIMENTOS - JSONB (3 campos)\n  // ========================================\n  const procedimentos = (data.procedimentos || []).map(proc => {\n    const s = proc.s;\n\n    // Monta descrição completa\n    let descricaoCompleta = s.descricaoProcedimento || s.procedimento.nome;\n\n    // Adiciona região\n    if (proc.dadosRegiao?.length > 0) {\n      const regioes = proc.dadosRegiao.map(r => r.descricao).join(', ');\n      descricaoCompleta += ` - ${regioes}`;\n    }\n\n    // Adiciona dentes\n    if (proc.dentesSelecionados?.length > 0) {\n      descricaoCompleta += ` (Dentes: ${proc.dentesSelecionados.join(', ')})`;\n    }\n\n    // Adiciona faces\n    if (proc.facesDentesSelecionados?.length > 0) {\n      const faces = proc.facesDentesSelecionados\n        .map(f => `${f.denteId}: ${f.faces.join(', ')}`)\n        .join(' | ');\n      descricaoCompleta += ` - Faces: ${faces}`;\n    }\n\n    // Status do procedimento\n    const statusProcMap = {\n      1: 'PENDENTE',\n      2: 'EM ANDAMENTO',\n      3: 'FINALIZADO',\n      4: 'CANCELADO'\n    };\n\n    return {\n      procedimento_id: s.procedimentoId,\n      nome: s.procedimento.nome,\n      descricao: descricaoCompleta,\n      codigo_tuss: s.procedimento.tuss,\n      valor_original: s.valor,\n      valor_desconto: s.valorDesconto,\n      valor_final: s.valorFinal,\n      profissional: s.profissional?.nome,\n      plano: s.plano?.nome,\n      status: s.status,\n      status_nome: statusProcMap[s.status] || 'DESCONHECIDO',\n      aprovado: s.aprovado,\n      regiao: proc.dadosRegiao?.map(r => r.descricao).join(', ') || null,\n      dentes: proc.dentesSelecionados?.join(', ') || null,\n      faces: proc.facesDentesSelecionados?.length > 0\n        ? proc.facesDentesSelecionados.map(f => `${f.denteId}: ${f.faces.join(', ')}`).join(' | ')\n        : null,\n      observacao: s.observacao || null\n    };\n  });\n\n  const total_procedimentos = procedimentos.length;\n  const procedimentos_resumo = procedimentos\n    .map(p => `${p.nome} (R$ ${p.valor_final.toFixed(2)})`)\n    .join('; ');\n\n  // ========================================\n  // 10. OBSERVAÇÕES - JSONB (3 campos)\n  // ========================================\n  const observacoes = (vendaPerdida.painelObservacoes || []).map(obs => ({\n    id: obs.id,\n    observacao: obs.observacao,\n    status: obs.status,\n    tipo_marcacao: obs.tipoMarcacao,\n    usuario: obs.usuario,\n    data_cadastro: obs.dataCadastro,\n    ativo: obs.ativo\n  }));\n\n  const total_observacoes = observacoes.length;\n  const ultima_observacao = observacoes.length > 0\n    ? observacoes[observacoes.length - 1].observacao\n    : null;\n\n  // ========================================\n  // 11. PAGAMENTO (5 campos)\n  // ========================================\n  const pagamento = data.negociacaoPagamento?.[0] || {};\n  const metodoPagamento = pagamento.metodoPagamento || {};\n\n  const forma_pagamento = metodoPagamento.formaPagamento;\n  const metodo_pagamento_id = pagamento.metodoPagamentoId;\n  const numero_parcelas = pagamento.qtdParcelas || 0;\n  const valor_parcela = pagamento.valorParcela || 0;\n  const data_vencimento_primeira_parcela = pagamento.dataVencimentoParcela;\n\n  // ========================================\n  // 12. RECORRÊNCIA (3 campos)\n  // ========================================\n  const is_recorrencia = vendaPerdida.isRecorrencia || false;\n  const orcamento_inicial = vendaPerdida.orcamentoInicial;\n  const tipo_recorrencia = 0; // Fixo por enquanto\n\n  // ========================================\n  // 13. RECUPERAÇÃO (8 campos - valores padrão)\n  // ========================================\n  const is_contato_realizado = vendaPerdida.isContatoRealizado || false;\n  const data_ultimo_contato = null;\n  const tipo_ultimo_contato = null;\n  const total_tentativas_recuperacao = 0;\n  const status_recuperacao = 'pendente';\n  const proxima_acao = null;\n  const responsavel_recuperacao = null;\n  const observacao_recuperacao = null;\n\n  // ========================================\n  // 14. DADOS COMPLETOS - JSONB (1 campo)\n  // ========================================\n  const dados_completos_json = {\n    venda_perdida: vendaPerdida,\n    detalhes_completos: detalhes\n  };\n\n  // ========================================\n  // 15. CONTROLE (3 campos)\n  // ========================================\n  const sincronizado_em = new Date().toISOString();\n  const atualizado_em = new Date().toISOString();\n  const ativo = true;\n\n  // ========================================\n  // OBJETO FINAL COMPLETO PARA SUPABASE\n  // ========================================\n  const registroCompleto = {\n    // 1. Identificadores\n    orcamento_id: orcamento_id,\n    painel_orcamento_id: painel_orcamento_id,\n\n    // 2. Paciente\n    paciente_id: paciente_id,\n    paciente_nome: paciente_nome,\n    paciente_celular: paciente_celular,\n    paciente_email: paciente_email,\n    paciente_cpf: paciente_cpf,\n    paciente_data_nascimento: paciente_data_nascimento,\n    paciente_cidade: paciente_cidade,\n    paciente_estado: paciente_estado,\n\n    // 3. Profissional\n    profissional_id: profissional_id,\n    profissional_nome: profissional_nome,\n    profissional_email: profissional_email,\n    profissional_celular: profissional_celular,\n\n    // 4. Clínica\n    clinica_id: clinica_id,\n    clinica_nome: clinica_nome,\n    conta_id: conta_id,\n\n    // 5. Especialidade\n    especialidade_id: especialidade_id,\n    especialidade_nome: especialidade_nome,\n\n    // 6. Valores\n    valor_total: valor_total,\n    valor_desconto_total: valor_desconto_total,\n    valor_acrescimo_total: valor_acrescimo_total,\n    valor_final: valor_final,\n\n    // 7. Status e Motivo\n    status_card: status_card,\n    status_descricao: status_descricao,\n    motivo_perda_id: motivo_perda_id,\n    motivo_perda_nome: motivo_perda_nome,\n\n    // 8. Datas\n    data_orcamento: data_orcamento,\n    data_aprovacao: data_aprovacao,\n    data_perda: data_perda,\n    data_movimentacao_negociacao: data_movimentacao_negociacao,\n    data_retorno: data_retorno,\n\n    // 9. Procedimentos JSONB\n    procedimentos: procedimentos,\n    total_procedimentos: total_procedimentos,\n    procedimentos_resumo: procedimentos_resumo,\n\n    // 10. Observações JSONB\n    observacoes: observacoes,\n    ultima_observacao: ultima_observacao,\n    total_observacoes: total_observacoes,\n\n    // 11. Pagamento\n    forma_pagamento: forma_pagamento,\n    metodo_pagamento_id: metodo_pagamento_id,\n    numero_parcelas: numero_parcelas,\n    valor_parcela: valor_parcela,\n    data_vencimento_primeira_parcela: data_vencimento_primeira_parcela,\n\n    // 12. Recorrência\n    is_recorrencia: is_recorrencia,\n    orcamento_inicial: orcamento_inicial,\n    tipo_recorrencia: tipo_recorrencia,\n\n    // 13. Recuperação\n    is_contato_realizado: is_contato_realizado,\n    data_ultimo_contato: data_ultimo_contato,\n    tipo_ultimo_contato: tipo_ultimo_contato,\n    total_tentativas_recuperacao: total_tentativas_recuperacao,\n    status_recuperacao: status_recuperacao,\n    proxima_acao: proxima_acao,\n    responsavel_recuperacao: responsavel_recuperacao,\n    observacao_recuperacao: observacao_recuperacao,\n\n    // 14. Dados Completos\n    dados_completos_json: dados_completos_json,\n\n    // 15. Controle\n    sincronizado_em: sincronizado_em,\n    atualizado_em: atualizado_em,\n    ativo: ativo\n  };\n\n  // Retorna o registro completo pronto para inserir no Supabase\n  return { json: registroCompleto };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        -144
+      ],
+      "id": "0ecfa132-dec7-4fed-9a13-28ceb863adef",
+      "name": "detalha procedimentos1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        0,
+        800
+      ],
+      "id": "fb62bc07-f954-4409-b9ec-70aa68e943a0",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "content": "## TRAZ DETALHES DO ORÇAMENTO\n",
+        "width": 368
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        528,
+        240
+      ],
+      "id": "920f6af7-4a5d-4ed2-828a-7f34ecbe4d9f",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://clinix-cadastro.azurewebsites.net/api/v1/Consulta/gravaconsulta",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $item(\"0\").$node[\"obtem variaveis de requsição\"].json[\"bearerToken\"] }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Origin",
+              "value": "https://gestao.clinix.app.br"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"clinicaID\": 57,\n  \"profissionalId\": 1674,\n  \"cadeiraId\": 62,\n  \"especialidadeId\": 13,\n  \"pacienteId\": 48037,\n  \"celularPaciente\": \"16994660219\",\n  \"planoId\": 77,\n  \"dataInicio\": \"2025-11-27T14:00:00.000Z\",\n  \"hora_inicio\": \"11:00\",\n  \"tempoConsulta\": 10,\n  \"tipoAtendimentoPersonalizadoId\": 807,\n  \"statusConsulta\": 1,\n  \"retorno\": false,\n  \"tipoRetorno\": \"1\",\n  \"periodoRetorno\": \"1\",\n  \"observacao\": \"\",\n  \"origemRelacionamentoId\": null,\n  \"origemRelacionamentoOutros\": null,\n  \"dataFinal\": \"2025-11-27T13:10:00.000Z\",\n  \"tituloConsulta\": \"Mauricio\",\n  \"contaId\": 62,\n  \"painelLeadsId\": null,\n  \"pacienteSimples\": false,\n  \"usuario\": \"Henrique Lopes da Silva\",\n  \"pacienteElegivel\": null\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        192,
+        800
+      ],
+      "id": "9e81f76d-ca84-49b0-b4ce-697e284b862b",
+      "name": "marca consulta na agenda clinix"
+    },
+    {
+      "parameters": {
+        "url": "=https://clinix-cadastro.azurewebsites.net/api/v1/horarioatendimento?contaid={{ $item(\"0\").$node[\"Edit Fields\"].json[\"id_conta\"] }}&clinicaid={{ $item(\"0\").$node[\"Edit Fields\"].json[\"id_clinica\"] }}&profissionalId={{ $item(\"0\").$node[\"Edit Fields\"].json[\"id_profissional\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"
+            },
+            {
+              "name": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $item(\"0\").$node[\"Edit Fields\"].json[\"token\"] }}"
+            },
+            {
+              "name": "Origin",
+              "value": "https://gestao.clinix.app.br"
+            },
+            {
+              "name": "Referer",
+              "value": "https://gestao.clinix.app.br/"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1984,
+        560
+      ],
+      "id": "5dcb520a-89c9-409b-90e3-24d58c308d30",
+      "name": "lista horarios do profissional"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        272
+      ],
+      "id": "0df8b4c9-7eb1-4afe-8005-961b52bfba93",
+      "name": "Limit1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cef23318-1132-4c33-95c5-2a8f08f4a4e8",
+              "name": "id_conta",
+              "value": "={{ $item(\"0\").$node[\"obtem variaveis de requsição\"].json[\"idConta\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "5938b2f6-dc97-4eec-9bbc-d990386227d5",
+              "name": "id_clinica",
+              "value": "={{ $item(\"1\").$node[\"Buscar Detalhes Orçamento\"].json[\"data\"][\"negociacao\"][\"orcamento\"][\"clinicaId\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "a0e76936-8804-4555-8b15-4833def93bfc",
+              "name": "id_profissional",
+              "value": "={{ $item(\"2\").$node[\"Buscar Detalhes Orçamento\"].json[\"data\"][\"procedimentos\"][\"0\"][\"s\"][\"profissionalId\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "26f33466-184e-4572-993a-47f286b3a107",
+              "name": "token",
+              "value": "={{ $item(\"0\").$node[\"obtem variaveis de requsição\"].json[\"bearerToken\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1792,
+        560
+      ],
+      "id": "5c3731d4-4640-4219-83ed-dc5a3b3daea5",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {
+    "detalha procedimentos1": [
+      {
+        "json": {
+          "orcamentoId": 253235,
+          "pacienteNome": "Abílio Diniz",
+          "pacienteCelular": "16994660219",
+          "procedimentoId": 10299,
+          "nomeProcedimento": "Profilaxia",
+          "codigoTUSS": 85400319,
+          "descricaoCompleta": "Profilaxia|85400319 - Arcadas Superiores e inferiores",
+          "regiao": "Arcadas Superiores e inferiores",
+          "dentes": "N/A",
+          "valorOriginal": 164.15,
+          "valorDesconto": 64.15,
+          "valorFinal": 100,
+          "profissionalNome": "Alda Silva",
+          "planoNome": "Plano Particular",
+          "status": "PENDENTE",
+          "statusId": 1,
+          "aprovado": true,
+          "observacao": ""
+        }
+      },
+      {
+        "json": {
+          "orcamentoId": 253235,
+          "pacienteNome": "Abílio Diniz",
+          "pacienteCelular": "16994660219",
+          "procedimentoId": 6183,
+          "nomeProcedimento": "LIMPEZA (Profilaxia, Raspagem, Ultrassom)",
+          "codigoTUSS": 85200050,
+          "descricaoCompleta": "LIMPEZA (Profilaxia, Raspagem, Ultrassom)|85200050 - Arcadas Superiores e inferiores",
+          "regiao": "Arcadas Superiores e inferiores",
+          "dentes": "N/A",
+          "valorOriginal": 154.11,
+          "valorDesconto": 4.11,
+          "valorFinal": 150,
+          "profissionalNome": "Alda Silva",
+          "planoNome": "Plano Particular",
+          "status": "FINALIZADO",
+          "statusId": 3,
+          "aprovado": true,
+          "observacao": ""
+        }
+      },
+      {
+        "json": {
+          "orcamentoId": 253235,
+          "pacienteNome": "Abílio Diniz",
+          "pacienteCelular": "16994660219",
+          "procedimentoId": 9851,
+          "nomeProcedimento": "Ajuste Oclusal por acrescimo",
+          "codigoTUSS": 85400017,
+          "descricaoCompleta": "Ajuste Oclusal por acrescimo|85400017 (Dentes: 21, 41, 31, 11)",
+          "regiao": "N/A",
+          "dentes": "21, 41, 31, 11",
+          "valorOriginal": 408.68,
+          "valorDesconto": 8.68,
+          "valorFinal": 400,
+          "profissionalNome": "Alda Silva",
+          "planoNome": "Plano Particular",
+          "status": "PENDENTE",
+          "statusId": 1,
+          "aprovado": true,
+          "observacao": ""
+        }
+      },
+      {
+        "json": {
+          "orcamentoId": 253235,
+          "pacienteNome": "Abílio Diniz",
+          "pacienteCelular": "16994660219",
+          "procedimentoId": 3131,
+          "nomeProcedimento": "Restauracao Em Resina 2 Faces",
+          "codigoTUSS": null,
+          "descricaoCompleta": "Restauracao Em Resina 2 Faces (Dentes: 31, 11, 21, 41) - Faces: 31: O/I | 11: O/I | 21: O/I | 41: O/I",
+          "regiao": "N/A",
+          "dentes": "31, 11, 21, 41",
+          "valorOriginal": 748.72,
+          "valorDesconto": 8.72,
+          "valorFinal": 740,
+          "profissionalNome": "Alda Silva",
+          "planoNome": "Plano Particular",
+          "status": "PENDENTE",
+          "statusId": 1,
+          "aprovado": true,
+          "observacao": ""
+        }
+      }
+    ],
+    "gera token de acesso": [
+      {
+        "json": {
+          "success": true,
+          "data": {
+            "user": {
+              "idUsuario": 72,
+              "nomeUsuario": "Henrique Lopes da Silva",
+              "nomeConta": "SORRISO DENTAL 2",
+              "idConta": 62,
+              "idFranqueadora": 0,
+              "idProfissional": null,
+              "email": "henrique.silva@nst.com.br",
+              "novoLogin": false,
+              "cidade": "Curitiba",
+              "premium": true,
+              "avaliacao": false,
+              "dataValidade": null,
+              "expirado": false,
+              "countryData": {
+                "countryCode": null,
+                "countryCurrency": null
+              },
+              "statusPagamento": {
+                "mensagem": "",
+                "statusPagamento": false
+              }
+            },
+            "grupo": {
+              "id": 1,
+              "nome": "Administrador",
+              "ativo": true
+            },
+            "menu": [
+              {
+                "id": 7,
+                "nome": "Inteligência",
+                "descricao": "Inteligência",
+                "icone": null,
+                "ordem": 1,
+                "ativo": true,
+                "menus": [
+                  {
+                    "id": 30,
+                    "moduloId": 7,
+                    "nome": "Especialidade",
+                    "descricao": "Relatório de Pacientes por Especialidade",
+                    "icone": "lab_profile",
+                    "ordem": 0,
+                    "url": "/dashboard/pacientes-especialidades",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 50,
+                        "menuId": 30,
+                        "nome": "Visualizar Especialidade",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 17,
+                    "moduloId": 7,
+                    "nome": "Faturamento",
+                    "descricao": "Faturamento",
+                    "icone": "dashboard",
+                    "ordem": 1,
+                    "url": "/dashboard/financeiro",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 31,
+                        "menuId": 17,
+                        "nome": "Visualizar Dashboards Financeiro",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 35,
+                    "moduloId": 7,
+                    "nome": "Leads",
+                    "descricao": "Dashboard Leads",
+                    "icone": "dashboard_customize",
+                    "ordem": 0,
+                    "url": "/dashboard/leads",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 55,
+                        "menuId": 35,
+                        "nome": "Visualizar Leads",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 25,
+                    "moduloId": 7,
+                    "nome": "Receita",
+                    "descricao": "Receita",
+                    "icone": "request_quote",
+                    "ordem": 0,
+                    "url": "/dashboard/receita",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 45,
+                        "menuId": 25,
+                        "nome": "Visualizar Receita",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 29,
+                    "moduloId": 7,
+                    "nome": "Vendas",
+                    "descricao": "Dashboard Vendas",
+                    "icone": "shopping_bag",
+                    "ordem": 0,
+                    "url": "/dashboard/vendas",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 49,
+                        "menuId": 29,
+                        "nome": "Visualizar Vendas",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": 3,
+                "nome": "Agenda",
+                "descricao": "Agenda",
+                "icone": null,
+                "ordem": 2,
+                "ativo": true,
+                "menus": [
+                  {
+                    "id": 8,
+                    "moduloId": 3,
+                    "nome": "Agenda",
+                    "descricao": "Agenda",
+                    "icone": "event",
+                    "ordem": 1,
+                    "url": "inicio",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 8,
+                        "menuId": 8,
+                        "nome": "Visualizar Agenda",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 9,
+                        "menuId": 8,
+                        "nome": "Incluir Agendamento",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 10,
+                        "menuId": 8,
+                        "nome": "Excluir Agendamento",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 11,
+                        "menuId": 8,
+                        "nome": "Cadastrar Paciente",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 68,
+                        "menuId": 8,
+                        "nome": "Visualizar Compromisso",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 69,
+                        "menuId": 8,
+                        "nome": "Incluir Compromisso",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 70,
+                        "menuId": 8,
+                        "nome": "Excluir Compromisso",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 38,
+                    "moduloId": 3,
+                    "nome": "Agenda Profissional",
+                    "descricao": "Agenda Profissional",
+                    "icone": "calendar_clock",
+                    "ordem": 0,
+                    "url": "/inicio/agenda-profissional",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 58,
+                        "menuId": 38,
+                        "nome": "Visualizar Agenda Profissional",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 27,
+                    "moduloId": 3,
+                    "nome": "Consultas Agendadas",
+                    "descricao": "Consultas Agendadas",
+                    "icone": "free_cancellation",
+                    "ordem": 0,
+                    "url": "/inicio/agendadas",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 47,
+                        "menuId": 27,
+                        "nome": "Visualizar Consultas Agendadas",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 16,
+                    "moduloId": 3,
+                    "nome": "Sem Agendamentos",
+                    "descricao": "Sem Agendamentos",
+                    "icone": "description",
+                    "ordem": 2,
+                    "url": "/inicio/sem-agendamento",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 30,
+                        "menuId": 16,
+                        "nome": "Relatório Sem Agendamentos",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": 6,
+                "nome": "CRM",
+                "descricao": "CRM",
+                "icone": "",
+                "ordem": 3,
+                "ativo": true,
+                "menus": [
+                  {
+                    "id": 22,
+                    "moduloId": 6,
+                    "nome": "Agendamentos",
+                    "descricao": "Agendamentos",
+                    "icone": "event_note",
+                    "ordem": 1,
+                    "url": "/paineis/agendamentos",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 42,
+                        "menuId": 22,
+                        "nome": "Painel de Agendamentos",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 6,
+                    "moduloId": 6,
+                    "nome": "Inadimplentes",
+                    "descricao": "Painéis",
+                    "icone": "money_off",
+                    "ordem": 2,
+                    "url": "paineis/financeiro",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 24,
+                        "menuId": 6,
+                        "nome": "Painel Financeiro Paciente",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 19,
+                    "moduloId": 6,
+                    "nome": "Leads",
+                    "descricao": "Leads",
+                    "icone": "tips_and_updates",
+                    "ordem": 3,
+                    "url": "/paineis/leads",
+                    "ativo": true,
+                    "premium": true,
+                    "permissoes": [
+                      {
+                        "id": 33,
+                        "menuId": 19,
+                        "nome": "Painel de Leads",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 20,
+                    "moduloId": 6,
+                    "nome": "Vendas",
+                    "descricao": "Vendas",
+                    "icone": "handshake",
+                    "ordem": 4,
+                    "url": "/paineis/vendas",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 34,
+                        "menuId": 20,
+                        "nome": "Painel de Vendas",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": 1,
+                "nome": "Paciente",
+                "descricao": "Paciente",
+                "icone": null,
+                "ordem": 4,
+                "ativo": true,
+                "menus": [
+                  {
+                    "id": 39,
+                    "moduloId": 1,
+                    "nome": "Aniversariantes",
+                    "descricao": "Relatório de Aniversariantes",
+                    "icone": "cake",
+                    "ordem": 0,
+                    "url": "/paciente/relatorio_aniversariantes",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 59,
+                        "menuId": 39,
+                        "nome": "Visualizar Aniversariantes",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 9,
+                    "moduloId": 1,
+                    "nome": "Paciente",
+                    "descricao": "Paciente",
+                    "icone": "account_circle",
+                    "ordem": 1,
+                    "url": "paciente",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 12,
+                        "menuId": 9,
+                        "nome": "Visualizar Paciente",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 62,
+                        "menuId": 9,
+                        "nome": "Cadastrar Ocorrencias",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 71,
+                        "menuId": 9,
+                        "nome": "Excluir Documentos e Anexos",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 40,
+                    "moduloId": 1,
+                    "nome": "Relatório de Guias",
+                    "descricao": "Relatório de Guias",
+                    "icone": "note_stack",
+                    "ordem": 0,
+                    "url": "/paciente/relatorio-guias",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 60,
+                        "menuId": 40,
+                        "nome": "Visualizar Relatório de Guias",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 32,
+                    "moduloId": 1,
+                    "nome": "Relatório de Pacientes",
+                    "descricao": "Relatório de Pacientes",
+                    "icone": "patient_list",
+                    "ordem": 0,
+                    "url": "/paciente/relatorio",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 52,
+                        "menuId": 32,
+                        "nome": "Visualizar Relatório de Pacientes",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 41,
+                    "moduloId": 1,
+                    "nome": "Relatório de Tratamentos",
+                    "descricao": "Relatório de Tratamentos",
+                    "icone": "fluid_balance",
+                    "ordem": 0,
+                    "url": "/paciente/relatorio-tratamentos",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 61,
+                        "menuId": 41,
+                        "nome": "Visualizar Relatório de Tratamentos",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": 5,
+                "nome": "Financeiro",
+                "descricao": "Financeiro",
+                "icone": "",
+                "ordem": 5,
+                "ativo": true,
+                "menus": [
+                  {
+                    "id": 43,
+                    "moduloId": 5,
+                    "nome": "Abrir/Fechar Caixa",
+                    "descricao": "Abrir/Fechar Caixa",
+                    "icone": "currency_exchange",
+                    "ordem": 0,
+                    "url": "/financeiro/caixa",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 64,
+                        "menuId": 43,
+                        "nome": "Visualizar Abrir/Fechar Caixa",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 45,
+                    "moduloId": 5,
+                    "nome": "Atendidos Sem Pagamentos",
+                    "descricao": "Atendidos Sem Pagamentos",
+                    "icone": "credit_card_clock",
+                    "ordem": 0,
+                    "url": "/financeiro/cobranca-clientes-atendidos",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 66,
+                        "menuId": 45,
+                        "nome": "Visualizar Atendidos Sem Pagamentos",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 42,
+                    "moduloId": 5,
+                    "nome": "Auditoria de Caixa",
+                    "descricao": "Auditoria de Caixa",
+                    "icone": "request_quote",
+                    "ordem": 0,
+                    "url": "/financeiro/conferencia-caixa",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 63,
+                        "menuId": 42,
+                        "nome": "Visualizar Auditoria de Caixa",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 13,
+                    "moduloId": 5,
+                    "nome": "Contas a Pagar/Receber",
+                    "descricao": "Contas a Pagar/Receber",
+                    "icone": "price_check",
+                    "ordem": 1,
+                    "url": "/financeiro/extrato",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 27,
+                        "menuId": 13,
+                        "nome": "Visualizar Extrato da Clínica",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 35,
+                        "menuId": 13,
+                        "nome": "Editar Receita",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 36,
+                        "menuId": 13,
+                        "nome": "Excluir Receita",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 37,
+                        "menuId": 13,
+                        "nome": "Cancelamento de Recebimento",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 38,
+                        "menuId": 13,
+                        "nome": "Cancelamento da Conta",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 44,
+                    "moduloId": 5,
+                    "nome": "DRE",
+                    "descricao": "DRE - Demonstrativo de Resultados do Exercício",
+                    "icone": "finance_mode",
+                    "ordem": 0,
+                    "url": "/financeiro/dre",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 65,
+                        "menuId": 44,
+                        "nome": "Visualizar DRE",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 36,
+                    "moduloId": 5,
+                    "nome": "Estornos",
+                    "descricao": "Relatório de Estornos",
+                    "icone": "history",
+                    "ordem": 0,
+                    "url": "/financeiro/estorno",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 56,
+                        "menuId": 36,
+                        "nome": "Visualizar Estornos",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 21,
+                    "moduloId": 5,
+                    "nome": "Extrato de Gateways",
+                    "descricao": "Extrato de Gateways",
+                    "icone": "credit_score",
+                    "ordem": 2,
+                    "url": "/financeiro/gateways",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 41,
+                        "menuId": 21,
+                        "nome": "Extrato de Gateways",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 18,
+                    "moduloId": 5,
+                    "nome": "Relatório de Procedimentos",
+                    "descricao": "Relatório de Procedimentos",
+                    "icone": "vaccines",
+                    "ordem": 2,
+                    "url": "/financeiro/relatorio/procedimentos",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 32,
+                        "menuId": 18,
+                        "nome": "Relatório de Procedimentos",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 5,
+                    "moduloId": 5,
+                    "nome": "Remunerações",
+                    "descricao": "Remunerações",
+                    "icone": "payments",
+                    "ordem": 2,
+                    "url": "financeiro/remuneracoes",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 23,
+                        "menuId": 5,
+                        "nome": "Visualizar Remuneracoes",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": 2,
+                "nome": "Cadastros",
+                "descricao": "Cadastros",
+                "icone": null,
+                "ordem": 6,
+                "ativo": true,
+                "menus": [
+                  {
+                    "id": 4,
+                    "moduloId": 2,
+                    "nome": "Clínica",
+                    "descricao": "Clínica",
+                    "icone": "business",
+                    "ordem": 1,
+                    "url": "clinica",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 5,
+                        "menuId": 4,
+                        "nome": "Cadastrar Clinica",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 14,
+                    "moduloId": 2,
+                    "nome": "Fornecedor",
+                    "descricao": "Fornecedor",
+                    "icone": "corporate_fare",
+                    "ordem": 2,
+                    "url": "/fornecedor",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 28,
+                        "menuId": 14,
+                        "nome": "Cadastrar Fornecedor",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 7,
+                    "moduloId": 2,
+                    "nome": "Profissional",
+                    "descricao": "Profissional",
+                    "icone": "badge",
+                    "ordem": 3,
+                    "url": "profissional",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 7,
+                        "menuId": 7,
+                        "nome": "Cadastrar Profissional",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 10,
+                    "moduloId": 2,
+                    "nome": "Usuário",
+                    "descricao": "Usuário",
+                    "icone": "people",
+                    "ordem": 4,
+                    "url": "usuario",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 13,
+                        "menuId": 10,
+                        "nome": "Cadastrar Usuario",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": 8,
+                "nome": "Estoque",
+                "descricao": "Estoque",
+                "icone": null,
+                "ordem": 7,
+                "ativo": true,
+                "menus": [
+                  {
+                    "id": 34,
+                    "moduloId": 8,
+                    "nome": "Estoque",
+                    "descricao": "Estoque",
+                    "icone": "inventory_2",
+                    "ordem": 0,
+                    "url": "/estoque",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 54,
+                        "menuId": 34,
+                        "nome": "Visualizar Estoque",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 33,
+                    "moduloId": 8,
+                    "nome": "Histórico de Movimentações",
+                    "descricao": "Histórico de Movimentações",
+                    "icone": "inventory",
+                    "ordem": 0,
+                    "url": "/estoque/historico",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 53,
+                        "menuId": 33,
+                        "nome": "Visualizar Histórico de Movimentações",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": 4,
+                "nome": "Configurações",
+                "descricao": "Configurações",
+                "icone": null,
+                "ordem": 8,
+                "ativo": true,
+                "menus": [
+                  {
+                    "id": 28,
+                    "moduloId": 4,
+                    "nome": "Alertas de Cobrança",
+                    "descricao": "Alertas de Cobrança",
+                    "icone": "notification_important",
+                    "ordem": 0,
+                    "url": "/configs/alertas",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 48,
+                        "menuId": 28,
+                        "nome": "Visualizar Alertas de Cobrança",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 31,
+                    "moduloId": 4,
+                    "nome": "Anamnese",
+                    "descricao": "Anamnese",
+                    "icone": "prescriptions",
+                    "ordem": 0,
+                    "url": "/configs/anamnese",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 51,
+                        "menuId": 31,
+                        "nome": "Visualizar Anamnese",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 24,
+                    "moduloId": 4,
+                    "nome": "Assinaturas",
+                    "descricao": "Assinaturas",
+                    "icone": "edit_square",
+                    "ordem": 0,
+                    "url": "/configs/assinatura",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 44,
+                        "menuId": 24,
+                        "nome": "Visualizar Assinaturas",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 46,
+                    "moduloId": 4,
+                    "nome": "Configurações Gerais",
+                    "descricao": "Configurações Gerais",
+                    "icone": "settings_applications",
+                    "ordem": 0,
+                    "url": "/configs/configuracoes-gerais",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 67,
+                        "menuId": 46,
+                        "nome": "Visualizar Configurações Gerais",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 12,
+                    "moduloId": 4,
+                    "nome": "Documentos Jurídicos",
+                    "descricao": "Documentos Jurídicos",
+                    "icone": "assignment",
+                    "ordem": 7,
+                    "url": "configs/modeloscontrato",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 26,
+                        "menuId": 12,
+                        "nome": "Incluir Modelos de Contrato",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "moduloId": 4,
+                    "nome": "Financeiro",
+                    "descricao": "Financeiro",
+                    "icone": "attach_money",
+                    "ordem": 1,
+                    "url": "financeiro",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 15,
+                        "menuId": 3,
+                        "nome": "Cadastrar Itens Tratamento",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 16,
+                        "menuId": 3,
+                        "nome": "Editar Conta Caixa",
+                        "itemContaCaixa": true,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 17,
+                        "menuId": 3,
+                        "nome": "Visualizar Conta Caixa",
+                        "itemContaCaixa": true,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 18,
+                        "menuId": 3,
+                        "nome": "Abertura Conta Caixa",
+                        "itemContaCaixa": true,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 19,
+                        "menuId": 3,
+                        "nome": "Fechamento Conta Caixa",
+                        "itemContaCaixa": true,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 20,
+                        "menuId": 3,
+                        "nome": "Baixar Conta Caixa",
+                        "itemContaCaixa": true,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 21,
+                        "menuId": 3,
+                        "nome": "Cancelar Conta Caixa",
+                        "itemContaCaixa": true,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 22,
+                        "menuId": 3,
+                        "nome": "Todas Conta Caixa",
+                        "itemContaCaixa": true,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 39,
+                        "menuId": 3,
+                        "nome": "Descontos no Recebimento",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      },
+                      {
+                        "id": 40,
+                        "menuId": 3,
+                        "nome": "Abonar Juros e Multa",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 37,
+                    "moduloId": 4,
+                    "nome": "Integrações",
+                    "descricao": "Integrações",
+                    "icone": "api",
+                    "ordem": 0,
+                    "url": "/configs/integracoes",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 57,
+                        "menuId": 37,
+                        "nome": "Visualizar Integrações",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 11,
+                    "moduloId": 4,
+                    "nome": "Logotipo",
+                    "descricao": "Logotipo",
+                    "icone": "add_photo_alternate",
+                    "ordem": 7,
+                    "url": "configs/clinica/logotipo",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 25,
+                        "menuId": 11,
+                        "nome": "Incluir Logotipo Clínica",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 26,
+                    "moduloId": 4,
+                    "nome": "Marketing",
+                    "descricao": "Marketing",
+                    "icone": "campaign",
+                    "ordem": 0,
+                    "url": "/configs/marketing",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 46,
+                        "menuId": 26,
+                        "nome": "Visualizar Marketing",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 15,
+                    "moduloId": 4,
+                    "nome": "Medicamentos",
+                    "descricao": "Medicamentos",
+                    "icone": "medication",
+                    "ordem": 7,
+                    "url": "/configs/medicamento",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 29,
+                        "menuId": 15,
+                        "nome": "Cadastrar Medicamentos",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 23,
+                    "moduloId": 4,
+                    "nome": "Minha Conta",
+                    "descricao": "Minha Conta",
+                    "icone": "settings",
+                    "ordem": 2,
+                    "url": "/minha-conta",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 43,
+                        "menuId": 23,
+                        "nome": "Minha Conta",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  },
+                  {
+                    "id": 1,
+                    "moduloId": 4,
+                    "nome": "Planos",
+                    "descricao": "Planos",
+                    "icone": "medical_services",
+                    "ordem": 7,
+                    "url": "plano",
+                    "ativo": true,
+                    "premium": false,
+                    "permissoes": [
+                      {
+                        "id": 1,
+                        "menuId": 1,
+                        "nome": "Cadastrar Planos",
+                        "itemContaCaixa": false,
+                        "ativo": true,
+                        "menu": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "token": "eyJhbGciOiJQUzI1NiIsImtpZCI6IlJzSVh0MGxyVGltSTA0WHYzajZPV2ciLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiI3MiIsImVtYWlsIjoiaGVucmlxdWUuc2lsdmFAbnN0LmNvbS5iciIsImp0aSI6IjZmYzU2YTdmLWFlNzgtNDI5Ni04YmViLTI2YzNjZTdiMDBhYiIsIm5iZiI6MTc2MzM5MDYwMywiaWF0IjoxNzYzMzkwNjAzLCJyb2xlIjpbIlZpc3VhbGl6YXJSZW11bmVyYWNvZXMiLCJEZXNjb250b3Nub1JlY2ViaW1lbnRvIiwiRXh0cmF0b2RlR2F0ZXdheXMiLCJCYWl4YXJDb250YUNhaXhhIiwiSW5jbHVpck1vZGVsb3NkZUNvbnRyYXRvIiwiQ2FkYXN0cmFyTWVkaWNhbWVudG9zIiwiQ2FkYXN0cmFyRmluYW5jZWlybyIsIlZpc3VhbGl6YXJDb250YUNhaXhhIiwiQ2FkYXN0cmFyQ2xpbmljYSIsIkVkaXRhclJlY2VpdGEiLCJFZGl0YXJDb250YUNhaXhhIiwiSW5jbHVpckxvZ290aXBvQ2zDrW5pY2EiLCJUb2Rhc0NvbnRhQ2FpeGEiLCJDYWRhc3RyYXJGb3JuZWNlZG9yIiwiUmVsYXTDs3Jpb1NlbUFnZW5kYW1lbnRvcyIsIkNhZGFzdHJhclByb2Zpc3Npb25hbCIsIlZpc3VhbGl6YXJQYWNpZW50ZSIsIlBhaW5lbEZpbmFuY2Vpcm9QYWNpZW50ZSIsIkNhZGFzdHJhclBsYW5vcyIsIkNhZGFzdHJhclBhY2llbnRlIiwiQ2FuY2VsYW1lbnRvZGVSZWNlYmltZW50byIsIlZpc3VhbGl6YXJBc3NpbmF0dXJhcyIsIlZpc3VhbGl6YXJEYXNoYm9hcmRzRmluYW5jZWlybyIsIlZpc3VhbGl6YXJBZ2VuZGEiLCJJbmNsdWlyQWdlbmRhbWVudG8iLCJDYWRhc3RyYXJVc3VhcmlvIiwiUmVsYXTDs3Jpb2RlUHJvY2VkaW1lbnRvcyIsIkV4Y2x1aXJBZ2VuZGFtZW50byIsIkZlY2hhbWVudG9Db250YUNhaXhhIiwiQ2FkYXN0cmFySXRlbnNUcmF0YW1lbnRvIiwiQ2FuY2VsYXJDb250YUNhaXhhIiwiUGFpbmVsZGVMZWFkcyIsIkFib25hckp1cm9zZU11bHRhIiwiRXhjbHVpclJlY2VpdGEiLCJQYWluZWxkZVZlbmRhcyIsIkFiZXJ0dXJhQ29udGFDYWl4YSIsIlZpc3VhbGl6YXJFeHRyYXRvZGFDbMOtbmljYSIsIkNhbmNlbGFtZW50b2RhQ29udGEiLCJWaXN1YWxpemFyQ29uZmlndXJhw6fDtWVzR2VyYWlzIiwiQ2FkYXN0cmFyT2NvcnJlbmNpYXMiLCJWaXN1YWxpemFyQXVkaXRvcmlhZGVDYWl4YSIsIlZpc3VhbGl6YXJFc3Rvcm5vcyIsIlZpc3VhbGl6YXJSZWxhdMOzcmlvZGVHdWlhcyIsIlZpc3VhbGl6YXJJbnRlZ3Jhw6fDtWVzIiwiVmlzdWFsaXphckFicmlyL0ZlY2hhckNhaXhhIiwiVmlzdWFsaXphckFnZW5kYVByb2Zpc3Npb25hbCIsIlZpc3VhbGl6YXJDb21wcm9taXNzbyIsIlZpc3VhbGl6YXJSZWxhdMOzcmlvZGVUcmF0YW1lbnRvcyIsIkluY2x1aXJDb21wcm9taXNzbyIsIlZpc3VhbGl6YXJBbml2ZXJzYXJpYW50ZXMiLCJFeGNsdWlyQ29tcHJvbWlzc28iLCJWaXN1YWxpemFyRFJFIiwiVmlzdWFsaXphckF0ZW5kaWRvc1NlbVBhZ2FtZW50b3MiLCJFeGNsdWlyRG9jdW1lbnRvc2VBbmV4b3MiXSwiZXhwIjoxNzYzNDMzODAzLCJpc3MiOiJodHRwczovL2NsaW5peC1hdXRlbnRpY2FjYW8uYXp1cmV3ZWJzaXRlcy5uZXQiLCJhdWQiOiJodHRwczovL2NsaW5peC1jYWRhc3Ryby5henVyZXdlYnNpdGVzLm5ldCxodHRwczovL2NsaW5peC1maW5hbmNlaXJvLmF6dXJld2Vic2l0ZXMubmV0LGh0dHBzOi8vY2xpbml4LWFwaS5henVyZXdlYnNpdGVzLm5ldCJ9.c0FcJ_f_sLKPdULapm5wZS-En-ZOF7eCx2mRakJGP23UkxWBbYzTpMjvsdCp4hpEo801uxrMTAHsur-_k4P1Cq4r0e07eLd04vFmJ0sOfMJ4rEmsuhGt3LQCUYt9fxiaQF2mEaIt8OtHfsdX4Glne6G8oKwVdvi-iqLFUGv9iDsLT-g6F5x0pCVExH5RD_RqPFn5YFwRCRahmb8WHXxNMdT1xvzs0Hjq4Ovu7kMFv1qadkCijKCsmzZF0pu8AAqllbpEu6hCPhWGZAV7ZNnQdkybM0m919InaB3W45k3DlMB7yNlH6v-S-GIkFaxxTo9IsMpF9L3ufdvI2rIWIwEbw"
+          }
+        }
+      }
+    ],
+    "obtem variaveis de requsição": [
+      {
+        "json": {
+          "token": "eyJhbGciOiJQUzI1NiIsImtpZCI6IlJzSVh0MGxyVGltSTA0WHYzajZPV2ciLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiI3MiIsImVtYWlsIjoiaGVucmlxdWUuc2lsdmFAbnN0LmNvbS5iciIsImp0aSI6IjZmYzU2YTdmLWFlNzgtNDI5Ni04YmViLTI2YzNjZTdiMDBhYiIsIm5iZiI6MTc2MzM5MDYwMywiaWF0IjoxNzYzMzkwNjAzLCJyb2xlIjpbIlZpc3VhbGl6YXJSZW11bmVyYWNvZXMiLCJEZXNjb250b3Nub1JlY2ViaW1lbnRvIiwiRXh0cmF0b2RlR2F0ZXdheXMiLCJCYWl4YXJDb250YUNhaXhhIiwiSW5jbHVpck1vZGVsb3NkZUNvbnRyYXRvIiwiQ2FkYXN0cmFyTWVkaWNhbWVudG9zIiwiQ2FkYXN0cmFyRmluYW5jZWlybyIsIlZpc3VhbGl6YXJDb250YUNhaXhhIiwiQ2FkYXN0cmFyQ2xpbmljYSIsIkVkaXRhclJlY2VpdGEiLCJFZGl0YXJDb250YUNhaXhhIiwiSW5jbHVpckxvZ290aXBvQ2zDrW5pY2EiLCJUb2Rhc0NvbnRhQ2FpeGEiLCJDYWRhc3RyYXJGb3JuZWNlZG9yIiwiUmVsYXTDs3Jpb1NlbUFnZW5kYW1lbnRvcyIsIkNhZGFzdHJhclByb2Zpc3Npb25hbCIsIlZpc3VhbGl6YXJQYWNpZW50ZSIsIlBhaW5lbEZpbmFuY2Vpcm9QYWNpZW50ZSIsIkNhZGFzdHJhclBsYW5vcyIsIkNhZGFzdHJhclBhY2llbnRlIiwiQ2FuY2VsYW1lbnRvZGVSZWNlYmltZW50byIsIlZpc3VhbGl6YXJBc3NpbmF0dXJhcyIsIlZpc3VhbGl6YXJEYXNoYm9hcmRzRmluYW5jZWlybyIsIlZpc3VhbGl6YXJBZ2VuZGEiLCJJbmNsdWlyQWdlbmRhbWVudG8iLCJDYWRhc3RyYXJVc3VhcmlvIiwiUmVsYXTDs3Jpb2RlUHJvY2VkaW1lbnRvcyIsIkV4Y2x1aXJBZ2VuZGFtZW50byIsIkZlY2hhbWVudG9Db250YUNhaXhhIiwiQ2FkYXN0cmFySXRlbnNUcmF0YW1lbnRvIiwiQ2FuY2VsYXJDb250YUNhaXhhIiwiUGFpbmVsZGVMZWFkcyIsIkFib25hckp1cm9zZU11bHRhIiwiRXhjbHVpclJlY2VpdGEiLCJQYWluZWxkZVZlbmRhcyIsIkFiZXJ0dXJhQ29udGFDYWl4YSIsIlZpc3VhbGl6YXJFeHRyYXRvZGFDbMOtbmljYSIsIkNhbmNlbGFtZW50b2RhQ29udGEiLCJWaXN1YWxpemFyQ29uZmlndXJhw6fDtWVzR2VyYWlzIiwiQ2FkYXN0cmFyT2NvcnJlbmNpYXMiLCJWaXN1YWxpemFyQXVkaXRvcmlhZGVDYWl4YSIsIlZpc3VhbGl6YXJFc3Rvcm5vcyIsIlZpc3VhbGl6YXJSZWxhdMOzcmlvZGVHdWlhcyIsIlZpc3VhbGl6YXJJbnRlZ3Jhw6fDtWVzIiwiVmlzdWFsaXphckFicmlyL0ZlY2hhckNhaXhhIiwiVmlzdWFsaXphckFnZW5kYVByb2Zpc3Npb25hbCIsIlZpc3VhbGl6YXJDb21wcm9taXNzbyIsIlZpc3VhbGl6YXJSZWxhdMOzcmlvZGVUcmF0YW1lbnRvcyIsIkluY2x1aXJDb21wcm9taXNzbyIsIlZpc3VhbGl6YXJBbml2ZXJzYXJpYW50ZXMiLCJFeGNsdWlyQ29tcHJvbWlzc28iLCJWaXN1YWxpemFyRFJFIiwiVmlzdWFsaXphckF0ZW5kaWRvc1NlbVBhZ2FtZW50b3MiLCJFeGNsdWlyRG9jdW1lbnRvc2VBbmV4b3MiXSwiZXhwIjoxNzYzNDMzODAzLCJpc3MiOiJodHRwczovL2NsaW5peC1hdXRlbnRpY2FjYW8uYXp1cmV3ZWJzaXRlcy5uZXQiLCJhdWQiOiJodHRwczovL2NsaW5peC1jYWRhc3Ryby5henVyZXdlYnNpdGVzLm5ldCxodHRwczovL2NsaW5peC1maW5hbmNlaXJvLmF6dXJld2Vic2l0ZXMubmV0LGh0dHBzOi8vY2xpbml4LWFwaS5henVyZXdlYnNpdGVzLm5ldCJ9.c0FcJ_f_sLKPdULapm5wZS-En-ZOF7eCx2mRakJGP23UkxWBbYzTpMjvsdCp4hpEo801uxrMTAHsur-_k4P1Cq4r0e07eLd04vFmJ0sOfMJ4rEmsuhGt3LQCUYt9fxiaQF2mEaIt8OtHfsdX4Glne6G8oKwVdvi-iqLFUGv9iDsLT-g6F5x0pCVExH5RD_RqPFn5YFwRCRahmb8WHXxNMdT1xvzs0Hjq4Ovu7kMFv1qadkCijKCsmzZF0pu8AAqllbpEu6hCPhWGZAV7ZNnQdkybM0m919InaB3W45k3DlMB7yNlH6v-S-GIkFaxxTo9IsMpF9L3ufdvI2rIWIwEbw",
+          "bearerToken": "Bearer eyJhbGciOiJQUzI1NiIsImtpZCI6IlJzSVh0MGxyVGltSTA0WHYzajZPV2ciLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiI3MiIsImVtYWlsIjoiaGVucmlxdWUuc2lsdmFAbnN0LmNvbS5iciIsImp0aSI6IjZmYzU2YTdmLWFlNzgtNDI5Ni04YmViLTI2YzNjZTdiMDBhYiIsIm5iZiI6MTc2MzM5MDYwMywiaWF0IjoxNzYzMzkwNjAzLCJyb2xlIjpbIlZpc3VhbGl6YXJSZW11bmVyYWNvZXMiLCJEZXNjb250b3Nub1JlY2ViaW1lbnRvIiwiRXh0cmF0b2RlR2F0ZXdheXMiLCJCYWl4YXJDb250YUNhaXhhIiwiSW5jbHVpck1vZGVsb3NkZUNvbnRyYXRvIiwiQ2FkYXN0cmFyTWVkaWNhbWVudG9zIiwiQ2FkYXN0cmFyRmluYW5jZWlybyIsIlZpc3VhbGl6YXJDb250YUNhaXhhIiwiQ2FkYXN0cmFyQ2xpbmljYSIsIkVkaXRhclJlY2VpdGEiLCJFZGl0YXJDb250YUNhaXhhIiwiSW5jbHVpckxvZ290aXBvQ2zDrW5pY2EiLCJUb2Rhc0NvbnRhQ2FpeGEiLCJDYWRhc3RyYXJGb3JuZWNlZG9yIiwiUmVsYXTDs3Jpb1NlbUFnZW5kYW1lbnRvcyIsIkNhZGFzdHJhclByb2Zpc3Npb25hbCIsIlZpc3VhbGl6YXJQYWNpZW50ZSIsIlBhaW5lbEZpbmFuY2Vpcm9QYWNpZW50ZSIsIkNhZGFzdHJhclBsYW5vcyIsIkNhZGFzdHJhclBhY2llbnRlIiwiQ2FuY2VsYW1lbnRvZGVSZWNlYmltZW50byIsIlZpc3VhbGl6YXJBc3NpbmF0dXJhcyIsIlZpc3VhbGl6YXJEYXNoYm9hcmRzRmluYW5jZWlybyIsIlZpc3VhbGl6YXJBZ2VuZGEiLCJJbmNsdWlyQWdlbmRhbWVudG8iLCJDYWRhc3RyYXJVc3VhcmlvIiwiUmVsYXTDs3Jpb2RlUHJvY2VkaW1lbnRvcyIsIkV4Y2x1aXJBZ2VuZGFtZW50byIsIkZlY2hhbWVudG9Db250YUNhaXhhIiwiQ2FkYXN0cmFySXRlbnNUcmF0YW1lbnRvIiwiQ2FuY2VsYXJDb250YUNhaXhhIiwiUGFpbmVsZGVMZWFkcyIsIkFib25hckp1cm9zZU11bHRhIiwiRXhjbHVpclJlY2VpdGEiLCJQYWluZWxkZVZlbmRhcyIsIkFiZXJ0dXJhQ29udGFDYWl4YSIsIlZpc3VhbGl6YXJFeHRyYXRvZGFDbMOtbmljYSIsIkNhbmNlbGFtZW50b2RhQ29udGEiLCJWaXN1YWxpemFyQ29uZmlndXJhw6fDtWVzR2VyYWlzIiwiQ2FkYXN0cmFyT2NvcnJlbmNpYXMiLCJWaXN1YWxpemFyQXVkaXRvcmlhZGVDYWl4YSIsIlZpc3VhbGl6YXJFc3Rvcm5vcyIsIlZpc3VhbGl6YXJSZWxhdMOzcmlvZGVHdWlhcyIsIlZpc3VhbGl6YXJJbnRlZ3Jhw6fDtWVzIiwiVmlzdWFsaXphckFicmlyL0ZlY2hhckNhaXhhIiwiVmlzdWFsaXphckFnZW5kYVByb2Zpc3Npb25hbCIsIlZpc3VhbGl6YXJDb21wcm9taXNzbyIsIlZpc3VhbGl6YXJSZWxhdMOzcmlvZGVUcmF0YW1lbnRvcyIsIkluY2x1aXJDb21wcm9taXNzbyIsIlZpc3VhbGl6YXJBbml2ZXJzYXJpYW50ZXMiLCJFeGNsdWlyQ29tcHJvbWlzc28iLCJWaXN1YWxpemFyRFJFIiwiVmlzdWFsaXphckF0ZW5kaWRvc1NlbVBhZ2FtZW50b3MiLCJFeGNsdWlyRG9jdW1lbnRvc2VBbmV4b3MiXSwiZXhwIjoxNzYzNDMzODAzLCJpc3MiOiJodHRwczovL2NsaW5peC1hdXRlbnRpY2FjYW8uYXp1cmV3ZWJzaXRlcy5uZXQiLCJhdWQiOiJodHRwczovL2NsaW5peC1jYWRhc3Ryby5henVyZXdlYnNpdGVzLm5ldCxodHRwczovL2NsaW5peC1maW5hbmNlaXJvLmF6dXJld2Vic2l0ZXMubmV0LGh0dHBzOi8vY2xpbml4LWFwaS5henVyZXdlYnNpdGVzLm5ldCJ9.c0FcJ_f_sLKPdULapm5wZS-En-ZOF7eCx2mRakJGP23UkxWBbYzTpMjvsdCp4hpEo801uxrMTAHsur-_k4P1Cq4r0e07eLd04vFmJ0sOfMJ4rEmsuhGt3LQCUYt9fxiaQF2mEaIt8OtHfsdX4Glne6G8oKwVdvi-iqLFUGv9iDsLT-g6F5x0pCVExH5RD_RqPFn5YFwRCRahmb8WHXxNMdT1xvzs0Hjq4Ovu7kMFv1qadkCijKCsmzZF0pu8AAqllbpEu6hCPhWGZAV7ZNnQdkybM0m919InaB3W45k3DlMB7yNlH6v-S-GIkFaxxTo9IsMpF9L3ufdvI2rIWIwEbw",
+          "idUsuario": 72,
+          "idConta": 62,
+          "nomeUsuario": "Henrique Lopes da Silva",
+          "authenticated": true
+        }
+      }
+    ],
+    "Busca Orçamentos": [
+      {
+        "json": {
+          "success": true,
+          "data": [
+            {
+              "id": 218666,
+              "orcamentoId": 253235,
+              "nome": "(253235) - Plano de Tratamento de Abílio Diniz",
+              "usuarioOrc": null,
+              "profissionalId": 50,
+              "profissionalNome": "Rogério Anastácio",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 46711,
+              "nomePaciente": "Abílio Diniz",
+              "celular": "16994660219",
+              "especialidadeId": 13,
+              "nomeEspecialidade": null,
+              "valor": 1390,
+              "ativo": false,
+              "dataOrcamento": "2025-04-16T12:56:19.741963",
+              "dataAprovacao": "0001-01-01T00:00:00",
+              "dataPerda": "2025-06-16T04:00:10.394874",
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 4,
+              "motivoPerdaId": 12,
+              "nomeMotivoPerda": "Prazo para aprovação Expirado (60 dias)",
+              "painelObservacoes": [
+                {
+                  "id": 275263,
+                  "observacao": "Orçamento aberto.",
+                  "painelOrcamentoId": 218666,
+                  "status": 1,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-04-16T12:57:18.526193",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                },
+                {
+                  "id": 275272,
+                  "observacao": "Orçamento aberto.",
+                  "painelOrcamentoId": 218666,
+                  "status": 1,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-04-16T12:58:26.541277",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                },
+                {
+                  "id": 346944,
+                  "observacao": "Prazo para aprovação Expirado (60 dias)",
+                  "painelOrcamentoId": 218666,
+                  "status": 4,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-06-16T04:00:10.394874",
+                  "usuario": null,
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 186247,
+              "orcamentoId": 218822,
+              "nome": "(218822) - Plano de Tratamento de Abílio Diniz",
+              "usuarioOrc": null,
+              "profissionalId": 1674,
+              "profissionalNome": "Ana Flávia",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 46711,
+              "nomePaciente": "Abílio Diniz",
+              "celular": "16994660219",
+              "especialidadeId": 13,
+              "nomeEspecialidade": null,
+              "valor": 520.15,
+              "ativo": false,
+              "dataOrcamento": "2025-03-11T17:47:12.03373",
+              "dataAprovacao": "0001-01-01T00:00:00",
+              "dataPerda": "2025-05-11T04:00:15.392773",
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 4,
+              "motivoPerdaId": 12,
+              "nomeMotivoPerda": "Prazo para aprovação Expirado (60 dias)",
+              "painelObservacoes": [
+                {
+                  "id": 234749,
+                  "observacao": "Orçamento aberto.",
+                  "painelOrcamentoId": 186247,
+                  "status": 1,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-03-11T17:47:49.60597",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                },
+                {
+                  "id": 234750,
+                  "observacao": "Orçamento aberto.",
+                  "painelOrcamentoId": 186247,
+                  "status": 1,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-03-11T17:48:04.42421",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                },
+                {
+                  "id": 308537,
+                  "observacao": "Prazo para aprovação Expirado (60 dias)",
+                  "painelOrcamentoId": 186247,
+                  "status": 4,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-05-11T04:00:15.392773",
+                  "usuario": null,
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 20255,
+              "orcamentoId": 23827,
+              "nome": "(23827) - Plano de Tratamento de Anestésico dos Santos",
+              "usuarioOrc": null,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 40441,
+              "nomePaciente": "Anestésico dos Santos",
+              "celular": "41996201955",
+              "especialidadeId": 1,
+              "nomeEspecialidade": null,
+              "valor": 143.57,
+              "ativo": false,
+              "dataOrcamento": "2024-05-02T14:35:41.090259",
+              "dataAprovacao": "2024-05-02T00:00:00",
+              "dataPerda": "2025-01-22T18:15:18.50372",
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 4,
+              "motivoPerdaId": 8,
+              "nomeMotivoPerda": "Alterar Financeiro",
+              "painelObservacoes": [
+                {
+                  "id": 44526,
+                  "observacao": "Orçamento Aprovado.",
+                  "painelOrcamentoId": 20255,
+                  "status": 3,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2024-05-02T14:40:07.23229",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                },
+                {
+                  "id": 190441,
+                  "observacao": "Orçamento cancelado pelo motivo Alterar Financeiro",
+                  "painelOrcamentoId": 20255,
+                  "status": 4,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-01-22T18:15:18.50372",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 422697,
+              "orcamentoId": 474618,
+              "nome": "(474618) - Plano de Tratamento de Anestésico Santos",
+              "usuarioOrc": null,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 40441,
+              "nomePaciente": "Anestésico dos Santos",
+              "celular": "41996201955",
+              "especialidadeId": 8,
+              "nomeEspecialidade": null,
+              "valor": 539.01,
+              "ativo": false,
+              "dataOrcamento": "2025-10-22T19:26:45.693973",
+              "dataAprovacao": "2025-10-22T00:00:00",
+              "dataPerda": null,
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 3,
+              "motivoPerdaId": null,
+              "nomeMotivoPerda": null,
+              "painelObservacoes": [
+                {
+                  "id": 515826,
+                  "observacao": "Orçamento Aprovado.",
+                  "painelOrcamentoId": 422697,
+                  "status": 3,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-10-22T19:27:33.847605",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 405806,
+              "orcamentoId": 457030,
+              "nome": "(457030) - Plano de Tratamento de Abílio Diniz",
+              "usuarioOrc": null,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 46711,
+              "nomePaciente": "Abílio Diniz",
+              "celular": "16994660219",
+              "especialidadeId": 8,
+              "nomeEspecialidade": null,
+              "valor": 122.75,
+              "ativo": false,
+              "dataOrcamento": "2025-10-08T18:57:38.813586",
+              "dataAprovacao": "2025-10-08T00:00:00",
+              "dataPerda": null,
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 3,
+              "motivoPerdaId": null,
+              "nomeMotivoPerda": null,
+              "painelObservacoes": [
+                {
+                  "id": 495487,
+                  "observacao": "Orçamento Aprovado.",
+                  "painelOrcamentoId": 405806,
+                  "status": 3,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-10-08T18:58:26.69578",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 402279,
+              "orcamentoId": 448758,
+              "nome": "(448758) - Plano de Tratamento de Rick Silva",
+              "usuarioOrc": null,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 22972,
+              "nomePaciente": "Rick Silva",
+              "celular": "41996201955",
+              "especialidadeId": 8,
+              "nomeEspecialidade": null,
+              "valor": 366.04,
+              "ativo": false,
+              "dataOrcamento": "2025-09-29T12:31:49.936344",
+              "dataAprovacao": "2025-09-29T00:00:00",
+              "dataPerda": null,
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 3,
+              "motivoPerdaId": null,
+              "nomeMotivoPerda": null,
+              "painelObservacoes": [
+                {
+                  "id": 489709,
+                  "observacao": "Orçamento Aprovado.",
+                  "painelOrcamentoId": 402279,
+                  "status": 3,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-09-29T12:32:13.378717",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 369864,
+              "orcamentoId": 414754,
+              "nome": "(414754) - Plano de Tratamento de Abílio Diniz",
+              "usuarioOrc": null,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 46711,
+              "nomePaciente": "Abílio Diniz",
+              "celular": "16994660219",
+              "especialidadeId": 23,
+              "nomeEspecialidade": null,
+              "valor": 134,
+              "ativo": false,
+              "dataOrcamento": "2025-09-02T18:21:27.735334",
+              "dataAprovacao": "2025-09-02T00:00:00",
+              "dataPerda": null,
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 3,
+              "motivoPerdaId": null,
+              "nomeMotivoPerda": null,
+              "painelObservacoes": [
+                {
+                  "id": 450978,
+                  "observacao": "Orçamento Aprovado.",
+                  "painelOrcamentoId": 369864,
+                  "status": 3,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-09-02T18:21:49.942398",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 336566,
+              "orcamentoId": 377603,
+              "nome": "(377603) - Plano de Tratamento de Mario Jorge",
+              "usuarioOrc": null,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 133935,
+              "nomePaciente": "Mario Jorge",
+              "celular": "85988869949",
+              "especialidadeId": 13,
+              "nomeEspecialidade": null,
+              "valor": 154.11,
+              "ativo": false,
+              "dataOrcamento": "2025-07-29T12:28:22.93029",
+              "dataAprovacao": "2025-07-29T00:00:00",
+              "dataPerda": null,
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 3,
+              "motivoPerdaId": null,
+              "nomeMotivoPerda": null,
+              "painelObservacoes": [
+                {
+                  "id": 411750,
+                  "observacao": "Orçamento Aprovado.",
+                  "painelOrcamentoId": 336566,
+                  "status": 3,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-07-29T12:28:52.604955",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 211954,
+              "orcamentoId": 245849,
+              "nome": "(245849) - Plano de Tratamento de Abílio Diniz",
+              "usuarioOrc": null,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 46711,
+              "nomePaciente": "Abílio Diniz",
+              "celular": "16994660219",
+              "especialidadeId": 23,
+              "nomeEspecialidade": null,
+              "valor": 134,
+              "ativo": false,
+              "dataOrcamento": "2025-03-25T19:20:44.226883",
+              "dataAprovacao": "2025-03-25T00:00:00",
+              "dataPerda": null,
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 3,
+              "motivoPerdaId": null,
+              "nomeMotivoPerda": null,
+              "painelObservacoes": [
+                {
+                  "id": 263702,
+                  "observacao": "Orçamento Aprovado.",
+                  "painelOrcamentoId": 211954,
+                  "status": 3,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-03-25T19:23:17.779196",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 211353,
+              "orcamentoId": 244961,
+              "nome": "(244961) - Plano de Tratamento de Anestésico dos Santos",
+              "usuarioOrc": null,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 40441,
+              "nomePaciente": "Anestésico dos Santos",
+              "celular": "41996201955",
+              "especialidadeId": 13,
+              "nomeEspecialidade": null,
+              "valor": 154.11,
+              "ativo": false,
+              "dataOrcamento": "2025-03-24T12:31:57.467831",
+              "dataAprovacao": "2025-03-24T00:00:00",
+              "dataPerda": null,
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 3,
+              "motivoPerdaId": null,
+              "nomeMotivoPerda": null,
+              "painelObservacoes": [
+                {
+                  "id": 262596,
+                  "observacao": "Orçamento Aprovado.",
+                  "painelOrcamentoId": 211353,
+                  "status": 3,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-03-24T12:32:40.215768",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 211337,
+              "orcamentoId": 244946,
+              "nome": "(244946) - Plano de Tratamento de Charles Almeida",
+              "usuarioOrc": null,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 36676,
+              "nomePaciente": "Charles Almeida",
+              "celular": "16994645653",
+              "especialidadeId": 13,
+              "nomeEspecialidade": null,
+              "valor": 1054.11,
+              "ativo": false,
+              "dataOrcamento": "2025-03-24T11:57:31.711893",
+              "dataAprovacao": "2025-03-24T00:00:00",
+              "dataPerda": null,
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 3,
+              "motivoPerdaId": null,
+              "nomeMotivoPerda": null,
+              "painelObservacoes": [
+                {
+                  "id": 262572,
+                  "observacao": "Orçamento Aprovado.",
+                  "painelOrcamentoId": 211337,
+                  "status": 3,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-03-24T11:58:00.19598",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 184973,
+              "orcamentoId": 217614,
+              "nome": "(217614) - Plano de Tratamento de Homer Simpson",
+              "usuarioOrc": null,
+              "profissionalId": 1674,
+              "profissionalNome": "Ana Flávia",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 29641,
+              "nomePaciente": "Homer Simpson",
+              "celular": "41999656032",
+              "especialidadeId": 8,
+              "nomeEspecialidade": null,
+              "valor": 373.88,
+              "ativo": false,
+              "dataOrcamento": "2025-03-05T13:32:26.196731",
+              "dataAprovacao": "2025-03-05T00:00:00",
+              "dataPerda": null,
+              "dataMovimentacaoNegociacao": "2025-03-05T13:33:02.942733",
+              "statusCard": 2,
+              "motivoPerdaId": null,
+              "nomeMotivoPerda": null,
+              "painelObservacoes": [
+                {
+                  "id": 232214,
+                  "observacao": "Orçamento aberto.",
+                  "painelOrcamentoId": 184973,
+                  "status": 1,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-03-05T13:32:36.18425",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                },
+                {
+                  "id": 232216,
+                  "observacao": "Movimentou este card de Em Aberto para Em Negociação\n'Em negociação'",
+                  "painelOrcamentoId": 184973,
+                  "status": 2,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-03-05T13:33:02.942733",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                },
+                {
+                  "id": 232217,
+                  "observacao": "Orçamento Aprovado.",
+                  "painelOrcamentoId": 184973,
+                  "status": 3,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-03-05T13:33:39.010943",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                },
+                {
+                  "id": 232218,
+                  "observacao": "Movimentou este card de Aprovado para Em Negociação\n'efefefefefefefefe'",
+                  "painelOrcamentoId": 184973,
+                  "status": 2,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-03-05T13:34:10.981833",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 154202,
+              "orcamentoId": 186046,
+              "nome": "(186046) - Plano de Tratamento de Anestésico dos Santos",
+              "usuarioOrc": null,
+              "profissionalId": 50,
+              "profissionalNome": "Rogério Anastácio",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 40441,
+              "nomePaciente": "Anestésico dos Santos",
+              "celular": "41996201955",
+              "especialidadeId": 8,
+              "nomeEspecialidade": null,
+              "valor": 0,
+              "ativo": false,
+              "dataOrcamento": "2025-01-23T14:49:26.813187",
+              "dataAprovacao": "2025-01-23T00:00:00",
+              "dataPerda": null,
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 3,
+              "motivoPerdaId": null,
+              "nomeMotivoPerda": null,
+              "painelObservacoes": [
+                {
+                  "id": 194495,
+                  "observacao": "Orçamento Aprovado.",
+                  "painelOrcamentoId": 154202,
+                  "status": 3,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2025-01-23T14:50:11.704771",
+                  "usuario": "Henrique Lopes da Silva",
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            },
+            {
+              "id": 101568,
+              "orcamentoId": 133937,
+              "nome": "(133937) - Plano de Tratamento de Anestésico dos Santos",
+              "usuarioOrc": null,
+              "profissionalId": 1674,
+              "profissionalNome": "Ana Flávia",
+              "nomeprofissional": null,
+              "clinicaId": 0,
+              "nomeClinica": "Sorriso Dental",
+              "pacienteId": 40441,
+              "nomePaciente": "Anestésico dos Santos",
+              "celular": "41996201955",
+              "especialidadeId": 8,
+              "nomeEspecialidade": null,
+              "valor": 203.84,
+              "ativo": false,
+              "dataOrcamento": "2024-12-17T10:27:57.630503",
+              "dataAprovacao": "2024-12-17T00:00:00",
+              "dataPerda": null,
+              "dataMovimentacaoNegociacao": null,
+              "statusCard": 3,
+              "motivoPerdaId": null,
+              "nomeMotivoPerda": null,
+              "painelObservacoes": [
+                {
+                  "id": 136936,
+                  "observacao": "Orçamento Aprovado.",
+                  "painelOrcamentoId": 101568,
+                  "status": 3,
+                  "tipoMarcacao": 0,
+                  "dataCadastro": "2024-12-17T10:28:07.082278",
+                  "usuario": "Ana Flávia",
+                  "ativo": true
+                }
+              ],
+              "isRecorrencia": false,
+              "orcamentoInicial": null,
+              "dataRetorno": null,
+              "isContatoRealizado": null
+            }
+          ]
+        }
+      }
+    ],
+    "Filtra somente PERDIDOS": [
+      {
+        "json": {
+          "orcamentoId": 253235,
+          "nomeOrcamento": "(253235) - Plano de Tratamento de Abílio Diniz",
+          "pacienteId": 46711,
+          "nomePaciente": "Abílio Diniz",
+          "celular": "16994660219",
+          "profissionalId": 50,
+          "profissionalNome": "Rogério Anastácio",
+          "valor": 1390,
+          "dataOrcamento": "2025-04-16T12:56:19.741963",
+          "dataPerda": "2025-06-16T04:00:10.394874",
+          "motivoPerdaId": 12,
+          "nomeMotivoPerda": "Prazo para aprovação Expirado (60 dias)",
+          "clinicaNome": "Sorriso Dental",
+          "especialidadeId": 13
+        }
+      },
+      {
+        "json": {
+          "orcamentoId": 218822,
+          "nomeOrcamento": "(218822) - Plano de Tratamento de Abílio Diniz",
+          "pacienteId": 46711,
+          "nomePaciente": "Abílio Diniz",
+          "celular": "16994660219",
+          "profissionalId": 1674,
+          "profissionalNome": "Ana Flávia",
+          "valor": 520.15,
+          "dataOrcamento": "2025-03-11T17:47:12.03373",
+          "dataPerda": "2025-05-11T04:00:15.392773",
+          "motivoPerdaId": 12,
+          "nomeMotivoPerda": "Prazo para aprovação Expirado (60 dias)",
+          "clinicaNome": "Sorriso Dental",
+          "especialidadeId": 13
+        }
+      },
+      {
+        "json": {
+          "orcamentoId": 23827,
+          "nomeOrcamento": "(23827) - Plano de Tratamento de Anestésico dos Santos",
+          "pacienteId": 40441,
+          "nomePaciente": "Anestésico dos Santos",
+          "celular": "41996201955",
+          "profissionalId": 166,
+          "profissionalNome": "Alda Silva",
+          "valor": 143.57,
+          "dataOrcamento": "2024-05-02T14:35:41.090259",
+          "dataPerda": "2025-01-22T18:15:18.50372",
+          "motivoPerdaId": 8,
+          "nomeMotivoPerda": "Alterar Financeiro",
+          "clinicaNome": "Sorriso Dental",
+          "especialidadeId": 1
+        }
+      }
+    ],
+    "Buscar Detalhes Orçamento": [
+      {
+        "json": {
+          "success": true,
+          "data": {
+            "procedimentos": [
+              {
+                "s": {
+                  "orcamentoId": 253235,
+                  "procedimentoId": 10299,
+                  "descricaoProcedimento": "Profilaxia|85400319",
+                  "dadosRegiao": [
+                    80
+                  ],
+                  "observacao": "",
+                  "aprovado": true,
+                  "planoId": 77,
+                  "profissionalId": 166,
+                  "valorOriginalSemImposto": 0,
+                  "valorSemImposto": 0,
+                  "taxaAliquota": 0,
+                  "valor": 164.15,
+                  "acrescimo": 0,
+                  "valorDesconto": 64.15,
+                  "valorFinal": 100,
+                  "status": 1,
+                  "isFacegrama": false,
+                  "isMale": false,
+                  "desenhoFacegrama": null,
+                  "tokenDesenhoFacegrama": null,
+                  "isBonificacao": false,
+                  "dataFinalizacao": null,
+                  "orcamento": null,
+                  "plano": {
+                    "nome": "Plano Particular",
+                    "contaId": 62,
+                    "planoReplicaId": null,
+                    "tipoProfissionalId": 1,
+                    "padrao": true,
+                    "fontePagadora": 1,
+                    "possuiFranquia": false,
+                    "integracaoId": null,
+                    "planoIntegracaoId": null,
+                    "numeroRegistro": null,
+                    "conta": null,
+                    "tipoProfissional": null,
+                    "id": 77,
+                    "usuario": "henrique.silva@nst.com.br",
+                    "dataCadastro": "2022-04-27T17:22:10.240953",
+                    "ativo": true
+                  },
+                  "procedimento": {
+                    "tuss": 85400319,
+                    "codigo": null,
+                    "nome": "Profilaxia",
+                    "especialidadeId": 8,
+                    "regiaoId": 7,
+                    "codigoIntegracao": null,
+                    "contaId": 62,
+                    "codigoProcedimentoControle": null,
+                    "regiao": null,
+                    "especialidade": null,
+                    "recorrente": false,
+                    "id": 10299,
+                    "usuario": null,
+                    "dataCadastro": "2022-10-26T23:19:40.711772",
+                    "ativo": true
+                  },
+                  "profissional": {
+                    "nome": "Alda Silva",
+                    "cpf": "55156764088",
+                    "nif": null,
+                    "email": "charles.almeida@clinix.app.br",
+                    "celular": "16994645653",
+                    "tipoProfissionalId": 1,
+                    "tipoProfissional": null,
+                    "registroConselho": "123www",
+                    "ufConselho": "AL",
+                    "tempoConsulta": 20,
+                    "avatarUrl": "https://ui-avatars.com/api/?background=c200ce",
+                    "avatarCor": "#c200ce",
+                    "usuarioId": null,
+                    "conta": null,
+                    "contaId": 62,
+                    "permiteEncaixe": true,
+                    "remuneracao": false,
+                    "valorRemuneracaoFixa": 0,
+                    "diaRemuneracaoFixa": 0,
+                    "cep": null,
+                    "logradouro": null,
+                    "numero": 0,
+                    "complemento": null,
+                    "bairro": null,
+                    "cidade": null,
+                    "estado": null,
+                    "cnpj": null,
+                    "dataAtualizacao": null,
+                    "registroOmd": null,
+                    "distritoOmd": null,
+                    "tipoPessoa": 0,
+                    "id": 166,
+                    "usuario": null,
+                    "dataCadastro": "0001-01-01T00:00:00",
+                    "ativo": true
+                  },
+                  "imagens": []
+                },
+                "dadosRegiao": [
+                  {
+                    "id": 80,
+                    "descricao": "Arcadas Superiores e inferiores",
+                    "valor": "ASAI",
+                    "regiaoId": 7
+                  }
+                ],
+                "dentesSelecionados": [],
+                "regioesFacegramaSelecionadas": [],
+                "facesDentesSelecionados": []
+              },
+              {
+                "s": {
+                  "orcamentoId": 253235,
+                  "procedimentoId": 6183,
+                  "descricaoProcedimento": "LIMPEZA (Profilaxia, Raspagem, Ultrassom)|85200050",
+                  "dadosRegiao": [
+                    80
+                  ],
+                  "observacao": "",
+                  "aprovado": true,
+                  "planoId": 77,
+                  "profissionalId": 166,
+                  "valorOriginalSemImposto": 0,
+                  "valorSemImposto": 0,
+                  "taxaAliquota": 0,
+                  "valor": 154.11,
+                  "acrescimo": 0,
+                  "valorDesconto": 4.11,
+                  "valorFinal": 150,
+                  "status": 3,
+                  "isFacegrama": false,
+                  "isMale": false,
+                  "desenhoFacegrama": null,
+                  "tokenDesenhoFacegrama": null,
+                  "isBonificacao": false,
+                  "dataFinalizacao": null,
+                  "orcamento": null,
+                  "plano": {
+                    "nome": "Plano Particular",
+                    "contaId": 62,
+                    "planoReplicaId": null,
+                    "tipoProfissionalId": 1,
+                    "padrao": true,
+                    "fontePagadora": 1,
+                    "possuiFranquia": false,
+                    "integracaoId": null,
+                    "planoIntegracaoId": null,
+                    "numeroRegistro": null,
+                    "conta": null,
+                    "tipoProfissional": null,
+                    "id": 77,
+                    "usuario": "henrique.silva@nst.com.br",
+                    "dataCadastro": "2022-04-27T17:22:10.240953",
+                    "ativo": true
+                  },
+                  "procedimento": {
+                    "tuss": 85200050,
+                    "codigo": null,
+                    "nome": "LIMPEZA (Profilaxia, Raspagem, Ultrassom)",
+                    "especialidadeId": 13,
+                    "regiaoId": 7,
+                    "codigoIntegracao": null,
+                    "contaId": 62,
+                    "codigoProcedimentoControle": null,
+                    "regiao": null,
+                    "especialidade": null,
+                    "recorrente": false,
+                    "id": 6183,
+                    "usuario": null,
+                    "dataCadastro": "2022-10-26T23:19:40.711772",
+                    "ativo": true
+                  },
+                  "profissional": {
+                    "nome": "Alda Silva",
+                    "cpf": "55156764088",
+                    "nif": null,
+                    "email": "charles.almeida@clinix.app.br",
+                    "celular": "16994645653",
+                    "tipoProfissionalId": 1,
+                    "tipoProfissional": null,
+                    "registroConselho": "123www",
+                    "ufConselho": "AL",
+                    "tempoConsulta": 20,
+                    "avatarUrl": "https://ui-avatars.com/api/?background=c200ce",
+                    "avatarCor": "#c200ce",
+                    "usuarioId": null,
+                    "conta": null,
+                    "contaId": 62,
+                    "permiteEncaixe": true,
+                    "remuneracao": false,
+                    "valorRemuneracaoFixa": 0,
+                    "diaRemuneracaoFixa": 0,
+                    "cep": null,
+                    "logradouro": null,
+                    "numero": 0,
+                    "complemento": null,
+                    "bairro": null,
+                    "cidade": null,
+                    "estado": null,
+                    "cnpj": null,
+                    "dataAtualizacao": null,
+                    "registroOmd": null,
+                    "distritoOmd": null,
+                    "tipoPessoa": 0,
+                    "id": 166,
+                    "usuario": null,
+                    "dataCadastro": "0001-01-01T00:00:00",
+                    "ativo": true
+                  },
+                  "imagens": []
+                },
+                "dadosRegiao": [
+                  {
+                    "id": 80,
+                    "descricao": "Arcadas Superiores e inferiores",
+                    "valor": "ASAI",
+                    "regiaoId": 7
+                  }
+                ],
+                "dentesSelecionados": [],
+                "regioesFacegramaSelecionadas": [],
+                "facesDentesSelecionados": []
+              },
+              {
+                "s": {
+                  "orcamentoId": 253235,
+                  "procedimentoId": 9851,
+                  "descricaoProcedimento": "Ajuste Oclusal por acrescimo|85400017",
+                  "dadosRegiao": [],
+                  "observacao": "",
+                  "aprovado": true,
+                  "planoId": 77,
+                  "profissionalId": 166,
+                  "valorOriginalSemImposto": 100,
+                  "valorSemImposto": 0,
+                  "taxaAliquota": 0,
+                  "valor": 408.68,
+                  "acrescimo": 0,
+                  "valorDesconto": 8.68,
+                  "valorFinal": 400,
+                  "status": 1,
+                  "isFacegrama": false,
+                  "isMale": false,
+                  "desenhoFacegrama": null,
+                  "tokenDesenhoFacegrama": null,
+                  "isBonificacao": false,
+                  "dataFinalizacao": null,
+                  "orcamento": null,
+                  "plano": {
+                    "nome": "Plano Particular",
+                    "contaId": 62,
+                    "planoReplicaId": null,
+                    "tipoProfissionalId": 1,
+                    "padrao": true,
+                    "fontePagadora": 1,
+                    "possuiFranquia": false,
+                    "integracaoId": null,
+                    "planoIntegracaoId": null,
+                    "numeroRegistro": null,
+                    "conta": null,
+                    "tipoProfissional": null,
+                    "id": 77,
+                    "usuario": "henrique.silva@nst.com.br",
+                    "dataCadastro": "2022-04-27T17:22:10.240953",
+                    "ativo": true
+                  },
+                  "procedimento": {
+                    "tuss": 85400017,
+                    "codigo": null,
+                    "nome": "Ajuste Oclusal por acrescimo",
+                    "especialidadeId": 8,
+                    "regiaoId": 2,
+                    "codigoIntegracao": null,
+                    "contaId": 62,
+                    "codigoProcedimentoControle": null,
+                    "regiao": {
+                      "nome": "Dente",
+                      "codigo": 2,
+                      "tipoProfissionalId": 1,
+                      "tipoProfissional": null,
+                      "id": 2,
+                      "usuario": "luciana.carvalho@nst.com.br",
+                      "dataCadastro": "2021-08-09T00:00:00",
+                      "ativo": true
+                    },
+                    "especialidade": null,
+                    "recorrente": false,
+                    "id": 9851,
+                    "usuario": null,
+                    "dataCadastro": "2022-10-26T23:19:40.711772",
+                    "ativo": true
+                  },
+                  "profissional": {
+                    "nome": "Alda Silva",
+                    "cpf": "55156764088",
+                    "nif": null,
+                    "email": "charles.almeida@clinix.app.br",
+                    "celular": "16994645653",
+                    "tipoProfissionalId": 1,
+                    "tipoProfissional": null,
+                    "registroConselho": "123www",
+                    "ufConselho": "AL",
+                    "tempoConsulta": 20,
+                    "avatarUrl": "https://ui-avatars.com/api/?background=c200ce",
+                    "avatarCor": "#c200ce",
+                    "usuarioId": null,
+                    "conta": null,
+                    "contaId": 62,
+                    "permiteEncaixe": true,
+                    "remuneracao": false,
+                    "valorRemuneracaoFixa": 0,
+                    "diaRemuneracaoFixa": 0,
+                    "cep": null,
+                    "logradouro": null,
+                    "numero": 0,
+                    "complemento": null,
+                    "bairro": null,
+                    "cidade": null,
+                    "estado": null,
+                    "cnpj": null,
+                    "dataAtualizacao": null,
+                    "registroOmd": null,
+                    "distritoOmd": null,
+                    "tipoPessoa": 0,
+                    "id": 166,
+                    "usuario": null,
+                    "dataCadastro": "0001-01-01T00:00:00",
+                    "ativo": true
+                  },
+                  "imagens": []
+                },
+                "dadosRegiao": [],
+                "dentesSelecionados": [
+                  21,
+                  41,
+                  31,
+                  11
+                ],
+                "regioesFacegramaSelecionadas": [],
+                "facesDentesSelecionados": []
+              },
+              {
+                "s": {
+                  "orcamentoId": 253235,
+                  "procedimentoId": 3131,
+                  "descricaoProcedimento": "Restauracao Em Resina 2 Faces",
+                  "dadosRegiao": [],
+                  "observacao": "",
+                  "aprovado": true,
+                  "planoId": 77,
+                  "profissionalId": 166,
+                  "valorOriginalSemImposto": 185,
+                  "valorSemImposto": 0,
+                  "taxaAliquota": 0,
+                  "valor": 748.72,
+                  "acrescimo": 0,
+                  "valorDesconto": 8.72,
+                  "valorFinal": 740,
+                  "status": 1,
+                  "isFacegrama": false,
+                  "isMale": false,
+                  "desenhoFacegrama": null,
+                  "tokenDesenhoFacegrama": null,
+                  "isBonificacao": false,
+                  "dataFinalizacao": null,
+                  "orcamento": null,
+                  "plano": {
+                    "nome": "Plano Particular",
+                    "contaId": 62,
+                    "planoReplicaId": null,
+                    "tipoProfissionalId": 1,
+                    "padrao": true,
+                    "fontePagadora": 1,
+                    "possuiFranquia": false,
+                    "integracaoId": null,
+                    "planoIntegracaoId": null,
+                    "numeroRegistro": null,
+                    "conta": null,
+                    "tipoProfissional": null,
+                    "id": 77,
+                    "usuario": "henrique.silva@nst.com.br",
+                    "dataCadastro": "2022-04-27T17:22:10.240953",
+                    "ativo": true
+                  },
+                  "procedimento": {
+                    "tuss": null,
+                    "codigo": null,
+                    "nome": "Restauracao Em Resina 2 Faces",
+                    "especialidadeId": 8,
+                    "regiaoId": 3,
+                    "codigoIntegracao": null,
+                    "contaId": 62,
+                    "codigoProcedimentoControle": null,
+                    "regiao": null,
+                    "especialidade": null,
+                    "recorrente": false,
+                    "id": 3131,
+                    "usuario": null,
+                    "dataCadastro": "2022-10-26T23:19:40.711772",
+                    "ativo": true
+                  },
+                  "profissional": {
+                    "nome": "Alda Silva",
+                    "cpf": "55156764088",
+                    "nif": null,
+                    "email": "charles.almeida@clinix.app.br",
+                    "celular": "16994645653",
+                    "tipoProfissionalId": 1,
+                    "tipoProfissional": null,
+                    "registroConselho": "123www",
+                    "ufConselho": "AL",
+                    "tempoConsulta": 20,
+                    "avatarUrl": "https://ui-avatars.com/api/?background=c200ce",
+                    "avatarCor": "#c200ce",
+                    "usuarioId": null,
+                    "conta": null,
+                    "contaId": 62,
+                    "permiteEncaixe": true,
+                    "remuneracao": false,
+                    "valorRemuneracaoFixa": 0,
+                    "diaRemuneracaoFixa": 0,
+                    "cep": null,
+                    "logradouro": null,
+                    "numero": 0,
+                    "complemento": null,
+                    "bairro": null,
+                    "cidade": null,
+                    "estado": null,
+                    "cnpj": null,
+                    "dataAtualizacao": null,
+                    "registroOmd": null,
+                    "distritoOmd": null,
+                    "tipoPessoa": 0,
+                    "id": 166,
+                    "usuario": null,
+                    "dataCadastro": "0001-01-01T00:00:00",
+                    "ativo": true
+                  },
+                  "imagens": []
+                },
+                "dadosRegiao": [],
+                "dentesSelecionados": [
+                  31,
+                  11,
+                  21,
+                  41
+                ],
+                "regioesFacegramaSelecionadas": [],
+                "facesDentesSelecionados": [
+                  {
+                    "denteId": 31,
+                    "faces": [
+                      "O/I"
+                    ]
+                  },
+                  {
+                    "denteId": 11,
+                    "faces": [
+                      "O/I"
+                    ]
+                  },
+                  {
+                    "denteId": 21,
+                    "faces": [
+                      "O/I"
+                    ]
+                  },
+                  {
+                    "denteId": 41,
+                    "faces": [
+                      "O/I"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "negociacao": {
+              "orcamentoId": 253235,
+              "descontoFinalProcedimentosPct": 0,
+              "descontoFinalProcedimentosVl": 0,
+              "tipoDesconto": 1,
+              "valorFinalProcedimentos": 1390,
+              "metodoPagamentoId": 38,
+              "descontoPctEntrada": 0,
+              "valorEntradaPagamento": 0,
+              "saldoRestante": 0,
+              "observacao": "",
+              "valorTotalAcrescimo": 0,
+              "valorTotalDesconto": 85.66,
+              "valorTotal": 1390,
+              "profissional": null,
+              "plano": null,
+              "orcamento": {
+                "cobrancaAutomatica": false,
+                "cobrancaAutomaticaFormaPagamento": null,
+                "isCartaoCadastradoCobrancaAutomatica": false,
+                "finalCartaoCadastradoCobrancaAutomatica": null,
+                "bandeiraCartaoCadastradoCobrancaAutomatica": 0,
+                "dataProximaCobranca": null,
+                "isIntegracao": false,
+                "descricao": "(253235) - Plano de Tratamento de Abílio Diniz",
+                "pacienteId": 46711,
+                "examePacienteId": [],
+                "statusOrcamentoId": 4,
+                "clinicaId": 57,
+                "contaId": 62,
+                "queixaPrincipal": "Teste",
+                "dataAlteracaoOrcamento": "2025-04-16T12:58:26.541276",
+                "dataAprovacaoOrcamento": "0001-01-01T00:00:00",
+                "observacaoExame": null,
+                "motivo": null,
+                "observacaoMotivo": null,
+                "dataInicioRecorrencia": null,
+                "dataFinalRecorrencia": null,
+                "alta": false,
+                "orcamentoInicial": null,
+                "diaRecorrencia": null,
+                "codigoCriacaoRecorrencia": null,
+                "codigoAdesaoRecorrencia": null,
+                "profissionalResponsavelId": 50,
+                "usuarioAprovacaoId": null,
+                "clinica": null,
+                "paciente": {
+                  "contaId": 62,
+                  "conta": null,
+                  "nome": "Abílio Diniz",
+                  "nomeSocial": null,
+                  "nomeMae": null,
+                  "rendaAtual": 0,
+                  "sexo": null,
+                  "celular": "16994660219",
+                  "telefone": null,
+                  "cpf": "24741070026",
+                  "nif": null,
+                  "dataNascimento": "1988-12-09T02:00:00",
+                  "email": "ivan.mastrange@clinix.app.br",
+                  "possuiResponsavel": false,
+                  "nomeResponsavel": null,
+                  "cpfResponsavel": null,
+                  "nifResponsavel": null,
+                  "dataNascimentoResponsavel": null,
+                  "cep": "82110000",
+                  "logradouro": "R Alexandre V Humboldt",
+                  "numero": "350",
+                  "complemento": "",
+                  "bairro": "Pilarzinho",
+                  "cidade": "Curitiba",
+                  "estado": "PR",
+                  "codigoPostal": null,
+                  "localidade": null,
+                  "concelho": null,
+                  "distrito": null,
+                  "observacao": null,
+                  "avatarUrl": "https://azclinixstorage.blob.core.windows.net/conta62/7936a971-e5cb-42f3-9e4f-46e38280d7f946711.jpeg",
+                  "emancipado": false,
+                  "docEmancipado": null,
+                  "score": 0,
+                  "confirmaConsultaEnvio": true,
+                  "planoResponsavel": null,
+                  "planoCpfResponsavel": null,
+                  "planoNIFResponsavel": null,
+                  "numeroCarteira": null,
+                  "rg": null,
+                  "emissor": null,
+                  "dataEmissao": null,
+                  "dataAlteracao": null,
+                  "codigoPaciente": 27,
+                  "idAsaas": null,
+                  "tokenAsaas": null,
+                  "bandeiraCartao": 0,
+                  "ultimosDigitosCartao": null,
+                  "origemRelacionamentoId": 6,
+                  "origemRelacionamentoOutros": null,
+                  "origemRelacionamento": null,
+                  "origemRelacionamentoPacienteId": null,
+                  "origemRelacionamentoPaciente": null,
+                  "statusPacienteId": 1,
+                  "statusPaciente": null,
+                  "planoId": 77,
+                  "plano": null,
+                  "rnm": null,
+                  "campanhaId": null,
+                  "campanha": null,
+                  "dataExpiracaoToken": "2025-11-12T18:05:32",
+                  "tokenFotoPaciente": "https://azclinixstorage.blob.core.windows.net/conta62/7936a971-e5cb-42f3-9e4f-46e38280d7f946711.jpeg?sv=2020-08-04&se=2025-11-12T18%3A05%3A32Z&sr=b&sp=rw&sig=QtUtlJX6W7O3%2FFUEvN80c6dwyR2QMJn%2Fyxr1x0HQ6Yw%3D",
+                  "id": 46711,
+                  "usuario": "Henrique Lopes da Silva",
+                  "dataCadastro": "2024-07-30T17:25:31.591536",
+                  "ativo": true
+                },
+                "statusOrcamento": null,
+                "conta": null,
+                "profissionalResponsavel": null,
+                "isImpresso": false,
+                "notaSolicitada": false,
+                "numeroRecorencia": null,
+                "dataRecorrencia": null,
+                "id": 253235,
+                "usuario": "henrique.silva@nst.com.br",
+                "dataCadastro": "2025-04-16T12:56:19.741963",
+                "ativo": true
+              },
+              "metodoPagamento": {
+                "contaId": 62,
+                "contaCaixaId": 21,
+                "formaPagamento": "DINHEIRO",
+                "desconto": 0,
+                "acrescimo": 0,
+                "tipoPagamentoId": 1,
+                "taxaScorePadrao": 0,
+                "parcelasPadrao": 0,
+                "taxaScoreBaixo": 0,
+                "parcelasBaixo": 0,
+                "taxaScoreAlto": 0,
+                "parcelasAlto": 0,
+                "valorMinimoParcela": 0,
+                "observacao": null,
+                "dataAlteracao": "2022-12-27T12:43:12.459838",
+                "usuarioAlteracao": "henrique.silva@nst.com.br",
+                "tipoGateway": 0,
+                "tipoTaxa": 0,
+                "tipoAcrescimo": 0,
+                "tipoDesconto": 0,
+                "tipoPagamento": null,
+                "conta": null,
+                "contaCaixa": null,
+                "jurosMultas": null,
+                "id": 38,
+                "usuario": "henrique.silva@nst.com.br",
+                "dataCadastro": "2022-04-27T17:22:12.409278",
+                "ativo": true
+              },
+              "id": 257700,
+              "usuario": "henrique.silva@nst.com.br",
+              "dataCadastro": "2025-04-16T12:58:26.279477",
+              "ativo": true
+            },
+            "negociacaoPagamento": [
+              {
+                "metodoPagamentoId": 38,
+                "negociacaoOrcamentoId": 257700,
+                "numeroParcela": 1,
+                "dataVencimentoParcela": "2025-04-16T23:59:59",
+                "qtdParcelas": 1,
+                "valorParcela": 1390,
+                "valorTotalParcelas": 1390,
+                "juros": false,
+                "descontoPagamentoPct": 0,
+                "valorFinalPagamento": 1390,
+                "valorTotalParcelado": 1390,
+                "metodoPagamento": {
+                  "contaId": 62,
+                  "contaCaixaId": 21,
+                  "formaPagamento": "DINHEIRO",
+                  "desconto": 0,
+                  "acrescimo": 0,
+                  "tipoPagamentoId": 1,
+                  "taxaScorePadrao": 0,
+                  "parcelasPadrao": 0,
+                  "taxaScoreBaixo": 0,
+                  "parcelasBaixo": 0,
+                  "taxaScoreAlto": 0,
+                  "parcelasAlto": 0,
+                  "valorMinimoParcela": 0,
+                  "observacao": null,
+                  "dataAlteracao": "2022-12-27T12:43:12.459838",
+                  "usuarioAlteracao": "henrique.silva@nst.com.br",
+                  "tipoGateway": 0,
+                  "tipoTaxa": 0,
+                  "tipoAcrescimo": 0,
+                  "tipoDesconto": 0,
+                  "tipoPagamento": {
+                    "nome": "Dinheiro",
+                    "aVista": true,
+                    "id": 1,
+                    "usuario": null,
+                    "dataCadastro": "2021-10-27T11:41:52.658875",
+                    "ativo": true
+                  },
+                  "conta": null,
+                  "contaCaixa": null,
+                  "jurosMultas": null,
+                  "id": 38,
+                  "usuario": "henrique.silva@nst.com.br",
+                  "dataCadastro": "2022-04-27T17:22:12.409278",
+                  "ativo": true
+                },
+                "negociacaoOrcamento": null,
+                "id": 321890,
+                "usuario": null,
+                "dataCadastro": "0001-01-01T00:00:00",
+                "ativo": false
+              }
+            ],
+            "metodoPagamentoList": [
+              {
+                "contaId": 62,
+                "contaCaixaId": 21,
+                "formaPagamento": "DINHEIRO",
+                "desconto": 0,
+                "acrescimo": 0,
+                "tipoPagamentoId": 1,
+                "taxaScorePadrao": 0,
+                "parcelasPadrao": 0,
+                "taxaScoreBaixo": 0,
+                "parcelasBaixo": 0,
+                "taxaScoreAlto": 0,
+                "parcelasAlto": 0,
+                "valorMinimoParcela": 0,
+                "observacao": null,
+                "dataAlteracao": "2022-12-27T12:43:12.459838",
+                "usuarioAlteracao": "henrique.silva@nst.com.br",
+                "tipoGateway": 0,
+                "tipoTaxa": 0,
+                "tipoAcrescimo": 0,
+                "tipoDesconto": 0,
+                "tipoPagamento": {
+                  "nome": "Dinheiro",
+                  "aVista": true,
+                  "id": 1,
+                  "usuario": null,
+                  "dataCadastro": "2021-10-27T11:41:52.658875",
+                  "ativo": true
+                },
+                "conta": null,
+                "contaCaixa": null,
+                "jurosMultas": null,
+                "id": 38,
+                "usuario": "henrique.silva@nst.com.br",
+                "dataCadastro": "2022-04-27T17:22:12.409278",
+                "ativo": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "json": {
+          "success": true,
+          "data": {
+            "procedimentos": [
+              {
+                "s": {
+                  "orcamentoId": 218822,
+                  "procedimentoId": 6183,
+                  "descricaoProcedimento": "85200050|LIMPEZA (Profilaxia, Raspagem, Ultrassom)",
+                  "dadosRegiao": [
+                    80
+                  ],
+                  "observacao": "",
+                  "aprovado": true,
+                  "planoId": 77,
+                  "profissionalId": 166,
+                  "valorOriginalSemImposto": 0,
+                  "valorSemImposto": 0,
+                  "taxaAliquota": 0,
+                  "valor": 154.11,
+                  "acrescimo": 0,
+                  "valorDesconto": 0,
+                  "valorFinal": 154.11,
+                  "status": 1,
+                  "isFacegrama": false,
+                  "isMale": false,
+                  "desenhoFacegrama": null,
+                  "tokenDesenhoFacegrama": null,
+                  "isBonificacao": false,
+                  "dataFinalizacao": null,
+                  "orcamento": null,
+                  "plano": {
+                    "nome": "Plano Particular",
+                    "contaId": 62,
+                    "planoReplicaId": null,
+                    "tipoProfissionalId": 1,
+                    "padrao": true,
+                    "fontePagadora": 1,
+                    "possuiFranquia": false,
+                    "integracaoId": null,
+                    "planoIntegracaoId": null,
+                    "numeroRegistro": null,
+                    "conta": null,
+                    "tipoProfissional": null,
+                    "id": 77,
+                    "usuario": "henrique.silva@nst.com.br",
+                    "dataCadastro": "2022-04-27T17:22:10.240953",
+                    "ativo": true
+                  },
+                  "procedimento": {
+                    "tuss": 85200050,
+                    "codigo": null,
+                    "nome": "LIMPEZA (Profilaxia, Raspagem, Ultrassom)",
+                    "especialidadeId": 13,
+                    "regiaoId": 7,
+                    "codigoIntegracao": null,
+                    "contaId": 62,
+                    "codigoProcedimentoControle": null,
+                    "regiao": null,
+                    "especialidade": null,
+                    "recorrente": false,
+                    "id": 6183,
+                    "usuario": null,
+                    "dataCadastro": "2022-10-26T23:19:40.711772",
+                    "ativo": true
+                  },
+                  "profissional": {
+                    "nome": "Alda Silva",
+                    "cpf": "55156764088",
+                    "nif": null,
+                    "email": "charles.almeida@clinix.app.br",
+                    "celular": "16994645653",
+                    "tipoProfissionalId": 1,
+                    "tipoProfissional": null,
+                    "registroConselho": "123www",
+                    "ufConselho": "AL",
+                    "tempoConsulta": 20,
+                    "avatarUrl": "https://ui-avatars.com/api/?background=c200ce",
+                    "avatarCor": "#c200ce",
+                    "usuarioId": null,
+                    "conta": null,
+                    "contaId": 62,
+                    "permiteEncaixe": true,
+                    "remuneracao": false,
+                    "valorRemuneracaoFixa": 0,
+                    "diaRemuneracaoFixa": 0,
+                    "cep": null,
+                    "logradouro": null,
+                    "numero": 0,
+                    "complemento": null,
+                    "bairro": null,
+                    "cidade": null,
+                    "estado": null,
+                    "cnpj": null,
+                    "dataAtualizacao": null,
+                    "registroOmd": null,
+                    "distritoOmd": null,
+                    "tipoPessoa": 0,
+                    "id": 166,
+                    "usuario": null,
+                    "dataCadastro": "0001-01-01T00:00:00",
+                    "ativo": true
+                  },
+                  "imagens": []
+                },
+                "dadosRegiao": [
+                  {
+                    "id": 80,
+                    "descricao": "Arcadas Superiores e inferiores",
+                    "valor": "ASAI",
+                    "regiaoId": 7
+                  }
+                ],
+                "dentesSelecionados": [],
+                "regioesFacegramaSelecionadas": [],
+                "facesDentesSelecionados": []
+              },
+              {
+                "s": {
+                  "orcamentoId": 218822,
+                  "procedimentoId": 8031,
+                  "descricaoProcedimento": "85100110|Restauracao de amalgama  - 1 face",
+                  "dadosRegiao": [],
+                  "observacao": "",
+                  "aprovado": true,
+                  "planoId": 77,
+                  "profissionalId": 166,
+                  "valorOriginalSemImposto": 183.02,
+                  "valorSemImposto": 0,
+                  "taxaAliquota": 0,
+                  "valor": 366.04,
+                  "acrescimo": 0,
+                  "valorDesconto": 0,
+                  "valorFinal": 366.04,
+                  "status": 3,
+                  "isFacegrama": false,
+                  "isMale": false,
+                  "desenhoFacegrama": null,
+                  "tokenDesenhoFacegrama": null,
+                  "isBonificacao": false,
+                  "dataFinalizacao": null,
+                  "orcamento": null,
+                  "plano": {
+                    "nome": "Plano Particular",
+                    "contaId": 62,
+                    "planoReplicaId": null,
+                    "tipoProfissionalId": 1,
+                    "padrao": true,
+                    "fontePagadora": 1,
+                    "possuiFranquia": false,
+                    "integracaoId": null,
+                    "planoIntegracaoId": null,
+                    "numeroRegistro": null,
+                    "conta": null,
+                    "tipoProfissional": null,
+                    "id": 77,
+                    "usuario": "henrique.silva@nst.com.br",
+                    "dataCadastro": "2022-04-27T17:22:10.240953",
+                    "ativo": true
+                  },
+                  "procedimento": {
+                    "tuss": 85100110,
+                    "codigo": null,
+                    "nome": "Restauracao de amalgama  - 1 face",
+                    "especialidadeId": 8,
+                    "regiaoId": 3,
+                    "codigoIntegracao": null,
+                    "contaId": 62,
+                    "codigoProcedimentoControle": null,
+                    "regiao": null,
+                    "especialidade": null,
+                    "recorrente": false,
+                    "id": 8031,
+                    "usuario": null,
+                    "dataCadastro": "2022-10-26T23:19:40.711772",
+                    "ativo": true
+                  },
+                  "profissional": {
+                    "nome": "Alda Silva",
+                    "cpf": "55156764088",
+                    "nif": null,
+                    "email": "charles.almeida@clinix.app.br",
+                    "celular": "16994645653",
+                    "tipoProfissionalId": 1,
+                    "tipoProfissional": null,
+                    "registroConselho": "123www",
+                    "ufConselho": "AL",
+                    "tempoConsulta": 20,
+                    "avatarUrl": "https://ui-avatars.com/api/?background=c200ce",
+                    "avatarCor": "#c200ce",
+                    "usuarioId": null,
+                    "conta": null,
+                    "contaId": 62,
+                    "permiteEncaixe": true,
+                    "remuneracao": false,
+                    "valorRemuneracaoFixa": 0,
+                    "diaRemuneracaoFixa": 0,
+                    "cep": null,
+                    "logradouro": null,
+                    "numero": 0,
+                    "complemento": null,
+                    "bairro": null,
+                    "cidade": null,
+                    "estado": null,
+                    "cnpj": null,
+                    "dataAtualizacao": null,
+                    "registroOmd": null,
+                    "distritoOmd": null,
+                    "tipoPessoa": 0,
+                    "id": 166,
+                    "usuario": null,
+                    "dataCadastro": "0001-01-01T00:00:00",
+                    "ativo": true
+                  },
+                  "imagens": []
+                },
+                "dadosRegiao": [],
+                "dentesSelecionados": [
+                  11,
+                  21
+                ],
+                "regioesFacegramaSelecionadas": [],
+                "facesDentesSelecionados": []
+              }
+            ],
+            "negociacao": {
+              "orcamentoId": 218822,
+              "descontoFinalProcedimentosPct": 0,
+              "descontoFinalProcedimentosVl": 0,
+              "tipoDesconto": 1,
+              "valorFinalProcedimentos": 520.15,
+              "metodoPagamentoId": 150,
+              "descontoPctEntrada": 0,
+              "valorEntradaPagamento": 0,
+              "saldoRestante": 0,
+              "observacao": "",
+              "valorTotalAcrescimo": 0,
+              "valorTotalDesconto": 0,
+              "valorTotal": 520.15,
+              "profissional": null,
+              "plano": null,
+              "orcamento": {
+                "cobrancaAutomatica": false,
+                "cobrancaAutomaticaFormaPagamento": null,
+                "isCartaoCadastradoCobrancaAutomatica": false,
+                "finalCartaoCadastradoCobrancaAutomatica": null,
+                "bandeiraCartaoCadastradoCobrancaAutomatica": 0,
+                "dataProximaCobranca": null,
+                "isIntegracao": false,
+                "descricao": "(218822) - Plano de Tratamento de Abílio Diniz",
+                "pacienteId": 46711,
+                "examePacienteId": [],
+                "statusOrcamentoId": 4,
+                "clinicaId": 57,
+                "contaId": 62,
+                "queixaPrincipal": "TEsTE",
+                "dataAlteracaoOrcamento": "2025-03-11T17:48:04.424209",
+                "dataAprovacaoOrcamento": "0001-01-01T00:00:00",
+                "observacaoExame": null,
+                "motivo": null,
+                "observacaoMotivo": null,
+                "dataInicioRecorrencia": null,
+                "dataFinalRecorrencia": null,
+                "alta": false,
+                "orcamentoInicial": null,
+                "diaRecorrencia": null,
+                "codigoCriacaoRecorrencia": null,
+                "codigoAdesaoRecorrencia": null,
+                "profissionalResponsavelId": 1674,
+                "usuarioAprovacaoId": null,
+                "clinica": null,
+                "paciente": {
+                  "contaId": 62,
+                  "conta": null,
+                  "nome": "Abílio Diniz",
+                  "nomeSocial": null,
+                  "nomeMae": null,
+                  "rendaAtual": 0,
+                  "sexo": null,
+                  "celular": "16994660219",
+                  "telefone": null,
+                  "cpf": "24741070026",
+                  "nif": null,
+                  "dataNascimento": "1988-12-09T02:00:00",
+                  "email": "ivan.mastrange@clinix.app.br",
+                  "possuiResponsavel": false,
+                  "nomeResponsavel": null,
+                  "cpfResponsavel": null,
+                  "nifResponsavel": null,
+                  "dataNascimentoResponsavel": null,
+                  "cep": "82110000",
+                  "logradouro": "R Alexandre V Humboldt",
+                  "numero": "350",
+                  "complemento": "",
+                  "bairro": "Pilarzinho",
+                  "cidade": "Curitiba",
+                  "estado": "PR",
+                  "codigoPostal": null,
+                  "localidade": null,
+                  "concelho": null,
+                  "distrito": null,
+                  "observacao": null,
+                  "avatarUrl": "https://azclinixstorage.blob.core.windows.net/conta62/7936a971-e5cb-42f3-9e4f-46e38280d7f946711.jpeg",
+                  "emancipado": false,
+                  "docEmancipado": null,
+                  "score": 0,
+                  "confirmaConsultaEnvio": true,
+                  "planoResponsavel": null,
+                  "planoCpfResponsavel": null,
+                  "planoNIFResponsavel": null,
+                  "numeroCarteira": null,
+                  "rg": null,
+                  "emissor": null,
+                  "dataEmissao": null,
+                  "dataAlteracao": null,
+                  "codigoPaciente": 27,
+                  "idAsaas": null,
+                  "tokenAsaas": null,
+                  "bandeiraCartao": 0,
+                  "ultimosDigitosCartao": null,
+                  "origemRelacionamentoId": 6,
+                  "origemRelacionamentoOutros": null,
+                  "origemRelacionamento": null,
+                  "origemRelacionamentoPacienteId": null,
+                  "origemRelacionamentoPaciente": null,
+                  "statusPacienteId": 1,
+                  "statusPaciente": null,
+                  "planoId": 77,
+                  "plano": null,
+                  "rnm": null,
+                  "campanhaId": null,
+                  "campanha": null,
+                  "dataExpiracaoToken": "2025-11-12T18:05:32",
+                  "tokenFotoPaciente": "https://azclinixstorage.blob.core.windows.net/conta62/7936a971-e5cb-42f3-9e4f-46e38280d7f946711.jpeg?sv=2020-08-04&se=2025-11-12T18%3A05%3A32Z&sr=b&sp=rw&sig=QtUtlJX6W7O3%2FFUEvN80c6dwyR2QMJn%2Fyxr1x0HQ6Yw%3D",
+                  "id": 46711,
+                  "usuario": "Henrique Lopes da Silva",
+                  "dataCadastro": "2024-07-30T17:25:31.591536",
+                  "ativo": true
+                },
+                "statusOrcamento": null,
+                "conta": null,
+                "profissionalResponsavel": null,
+                "isImpresso": false,
+                "notaSolicitada": false,
+                "numeroRecorencia": null,
+                "dataRecorrencia": null,
+                "id": 218822,
+                "usuario": "henrique.silva@nst.com.br",
+                "dataCadastro": "2025-03-11T17:47:12.03373",
+                "ativo": true
+              },
+              "metodoPagamento": {
+                "contaId": 62,
+                "contaCaixaId": 21,
+                "formaPagamento": "PIX Asaas",
+                "desconto": 0,
+                "acrescimo": 0,
+                "tipoPagamentoId": 7,
+                "taxaScorePadrao": 0,
+                "parcelasPadrao": 0,
+                "taxaScoreBaixo": 0,
+                "parcelasBaixo": 0,
+                "taxaScoreAlto": 0,
+                "parcelasAlto": 0,
+                "valorMinimoParcela": 0,
+                "observacao": "",
+                "dataAlteracao": "2024-05-07T17:51:57.282517",
+                "usuarioAlteracao": "henrique.silva@nst.com.br",
+                "tipoGateway": 3,
+                "tipoTaxa": 0,
+                "tipoAcrescimo": 1,
+                "tipoDesconto": 1,
+                "tipoPagamento": null,
+                "conta": null,
+                "contaCaixa": null,
+                "jurosMultas": null,
+                "id": 150,
+                "usuario": "henrique.silva@nst.com.br",
+                "dataCadastro": "2022-10-10T12:47:12.76695",
+                "ativo": true
+              },
+              "id": 222623,
+              "usuario": "henrique.silva@nst.com.br",
+              "dataCadastro": "2025-03-11T17:48:04.283864",
+              "ativo": true
+            },
+            "negociacaoPagamento": [
+              {
+                "metodoPagamentoId": 38,
+                "negociacaoOrcamentoId": 222623,
+                "numeroParcela": 1,
+                "dataVencimentoParcela": "2025-03-11T23:59:59",
+                "qtdParcelas": 1,
+                "valorParcela": 520.15,
+                "valorTotalParcelas": 520.15,
+                "juros": false,
+                "descontoPagamentoPct": 0,
+                "valorFinalPagamento": 520.15,
+                "valorTotalParcelado": 520.15,
+                "metodoPagamento": {
+                  "contaId": 62,
+                  "contaCaixaId": 21,
+                  "formaPagamento": "DINHEIRO",
+                  "desconto": 0,
+                  "acrescimo": 0,
+                  "tipoPagamentoId": 1,
+                  "taxaScorePadrao": 0,
+                  "parcelasPadrao": 0,
+                  "taxaScoreBaixo": 0,
+                  "parcelasBaixo": 0,
+                  "taxaScoreAlto": 0,
+                  "parcelasAlto": 0,
+                  "valorMinimoParcela": 0,
+                  "observacao": null,
+                  "dataAlteracao": "2022-12-27T12:43:12.459838",
+                  "usuarioAlteracao": "henrique.silva@nst.com.br",
+                  "tipoGateway": 0,
+                  "tipoTaxa": 0,
+                  "tipoAcrescimo": 0,
+                  "tipoDesconto": 0,
+                  "tipoPagamento": {
+                    "nome": "Dinheiro",
+                    "aVista": true,
+                    "id": 1,
+                    "usuario": null,
+                    "dataCadastro": "2021-10-27T11:41:52.658875",
+                    "ativo": true
+                  },
+                  "conta": null,
+                  "contaCaixa": null,
+                  "jurosMultas": null,
+                  "id": 38,
+                  "usuario": "henrique.silva@nst.com.br",
+                  "dataCadastro": "2022-04-27T17:22:12.409278",
+                  "ativo": true
+                },
+                "negociacaoOrcamento": null,
+                "id": 279400,
+                "usuario": null,
+                "dataCadastro": "0001-01-01T00:00:00",
+                "ativo": false
+              }
+            ],
+            "metodoPagamentoList": [
+              {
+                "contaId": 62,
+                "contaCaixaId": 21,
+                "formaPagamento": "DINHEIRO",
+                "desconto": 0,
+                "acrescimo": 0,
+                "tipoPagamentoId": 1,
+                "taxaScorePadrao": 0,
+                "parcelasPadrao": 0,
+                "taxaScoreBaixo": 0,
+                "parcelasBaixo": 0,
+                "taxaScoreAlto": 0,
+                "parcelasAlto": 0,
+                "valorMinimoParcela": 0,
+                "observacao": null,
+                "dataAlteracao": "2022-12-27T12:43:12.459838",
+                "usuarioAlteracao": "henrique.silva@nst.com.br",
+                "tipoGateway": 0,
+                "tipoTaxa": 0,
+                "tipoAcrescimo": 0,
+                "tipoDesconto": 0,
+                "tipoPagamento": {
+                  "nome": "Dinheiro",
+                  "aVista": true,
+                  "id": 1,
+                  "usuario": null,
+                  "dataCadastro": "2021-10-27T11:41:52.658875",
+                  "ativo": true
+                },
+                "conta": null,
+                "contaCaixa": null,
+                "jurosMultas": null,
+                "id": 38,
+                "usuario": "henrique.silva@nst.com.br",
+                "dataCadastro": "2022-04-27T17:22:12.409278",
+                "ativo": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "json": {
+          "success": true,
+          "data": {
+            "procedimentos": [
+              {
+                "s": {
+                  "orcamentoId": 23827,
+                  "procedimentoId": 10019,
+                  "descricaoProcedimento": "82000832|Exodontia de permanente por indicacao ortodontica/protetica",
+                  "dadosRegiao": [],
+                  "observacao": "",
+                  "aprovado": true,
+                  "planoId": 77,
+                  "profissionalId": 166,
+                  "valorOriginalSemImposto": 0,
+                  "valorSemImposto": 0,
+                  "taxaAliquota": 0,
+                  "valor": 143.57,
+                  "acrescimo": 0,
+                  "valorDesconto": 0,
+                  "valorFinal": 143.57,
+                  "status": 3,
+                  "isFacegrama": false,
+                  "isMale": false,
+                  "desenhoFacegrama": null,
+                  "tokenDesenhoFacegrama": null,
+                  "isBonificacao": false,
+                  "dataFinalizacao": null,
+                  "orcamento": null,
+                  "plano": {
+                    "nome": "Plano Particular",
+                    "contaId": 62,
+                    "planoReplicaId": null,
+                    "tipoProfissionalId": 1,
+                    "padrao": true,
+                    "fontePagadora": 1,
+                    "possuiFranquia": false,
+                    "integracaoId": null,
+                    "planoIntegracaoId": null,
+                    "numeroRegistro": null,
+                    "conta": null,
+                    "tipoProfissional": null,
+                    "id": 77,
+                    "usuario": "henrique.silva@nst.com.br",
+                    "dataCadastro": "2022-04-27T17:22:10.240953",
+                    "ativo": true
+                  },
+                  "procedimento": {
+                    "tuss": 82000832,
+                    "codigo": null,
+                    "nome": "Exodontia de permanente por indicacao ortodontica/protetica",
+                    "especialidadeId": 1,
+                    "regiaoId": 2,
+                    "codigoIntegracao": null,
+                    "contaId": 62,
+                    "codigoProcedimentoControle": null,
+                    "regiao": {
+                      "nome": "Dente",
+                      "codigo": 2,
+                      "tipoProfissionalId": 1,
+                      "tipoProfissional": null,
+                      "id": 2,
+                      "usuario": "luciana.carvalho@nst.com.br",
+                      "dataCadastro": "2021-08-09T00:00:00",
+                      "ativo": true
+                    },
+                    "especialidade": null,
+                    "recorrente": false,
+                    "id": 10019,
+                    "usuario": null,
+                    "dataCadastro": "2022-10-26T23:19:40.711772",
+                    "ativo": true
+                  },
+                  "profissional": {
+                    "nome": "Alda Silva",
+                    "cpf": "55156764088",
+                    "nif": null,
+                    "email": "charles.almeida@clinix.app.br",
+                    "celular": "16994645653",
+                    "tipoProfissionalId": 1,
+                    "tipoProfissional": null,
+                    "registroConselho": "123www",
+                    "ufConselho": "AL",
+                    "tempoConsulta": 20,
+                    "avatarUrl": "https://ui-avatars.com/api/?background=c200ce",
+                    "avatarCor": "#c200ce",
+                    "usuarioId": null,
+                    "conta": null,
+                    "contaId": 62,
+                    "permiteEncaixe": true,
+                    "remuneracao": false,
+                    "valorRemuneracaoFixa": 0,
+                    "diaRemuneracaoFixa": 0,
+                    "cep": null,
+                    "logradouro": null,
+                    "numero": 0,
+                    "complemento": null,
+                    "bairro": null,
+                    "cidade": null,
+                    "estado": null,
+                    "cnpj": null,
+                    "dataAtualizacao": null,
+                    "registroOmd": null,
+                    "distritoOmd": null,
+                    "tipoPessoa": 0,
+                    "id": 166,
+                    "usuario": null,
+                    "dataCadastro": "0001-01-01T00:00:00",
+                    "ativo": true
+                  },
+                  "imagens": []
+                },
+                "dadosRegiao": [],
+                "dentesSelecionados": [],
+                "regioesFacegramaSelecionadas": [],
+                "facesDentesSelecionados": []
+              }
+            ],
+            "negociacao": {
+              "orcamentoId": 23827,
+              "descontoFinalProcedimentosPct": 0,
+              "descontoFinalProcedimentosVl": 0,
+              "tipoDesconto": 1,
+              "valorFinalProcedimentos": 143.57,
+              "metodoPagamentoId": 38,
+              "descontoPctEntrada": 0,
+              "valorEntradaPagamento": 0,
+              "saldoRestante": 0,
+              "observacao": "",
+              "valorTotalAcrescimo": 0,
+              "valorTotalDesconto": 0,
+              "valorTotal": 143.57,
+              "profissional": null,
+              "plano": null,
+              "orcamento": {
+                "cobrancaAutomatica": false,
+                "cobrancaAutomaticaFormaPagamento": null,
+                "isCartaoCadastradoCobrancaAutomatica": false,
+                "finalCartaoCadastradoCobrancaAutomatica": null,
+                "bandeiraCartaoCadastradoCobrancaAutomatica": 0,
+                "dataProximaCobranca": null,
+                "isIntegracao": false,
+                "descricao": "(23827) - Plano de Tratamento de Anestésico dos Santos",
+                "pacienteId": 40441,
+                "examePacienteId": [],
+                "statusOrcamentoId": 6,
+                "clinicaId": 57,
+                "contaId": 62,
+                "queixaPrincipal": "Guest",
+                "dataAlteracaoOrcamento": "2024-05-02T14:40:06.888132",
+                "dataAprovacaoOrcamento": "2024-05-02T00:00:00",
+                "observacaoExame": null,
+                "motivo": null,
+                "observacaoMotivo": null,
+                "dataInicioRecorrencia": null,
+                "dataFinalRecorrencia": null,
+                "alta": false,
+                "orcamentoInicial": null,
+                "diaRecorrencia": null,
+                "codigoCriacaoRecorrencia": null,
+                "codigoAdesaoRecorrencia": null,
+                "profissionalResponsavelId": 166,
+                "usuarioAprovacaoId": null,
+                "clinica": null,
+                "paciente": {
+                  "contaId": 62,
+                  "conta": null,
+                  "nome": "Anestésico dos Santos",
+                  "nomeSocial": null,
+                  "nomeMae": null,
+                  "rendaAtual": 0,
+                  "sexo": "M",
+                  "celular": "41996201955",
+                  "telefone": null,
+                  "cpf": "90436173000",
+                  "nif": null,
+                  "dataNascimento": "1900-06-14T03:06:28",
+                  "email": "rotina@email.com",
+                  "possuiResponsavel": false,
+                  "nomeResponsavel": null,
+                  "cpfResponsavel": null,
+                  "nifResponsavel": null,
+                  "dataNascimentoResponsavel": "1970-01-01T03:00:00",
+                  "cep": "82115000",
+                  "logradouro": "Av Fredolin Wolf",
+                  "numero": "6",
+                  "complemento": "- até 1799/1800",
+                  "bairro": "Pilarzinho",
+                  "cidade": "Curitiba",
+                  "estado": "PR",
+                  "codigoPostal": null,
+                  "localidade": null,
+                  "concelho": null,
+                  "distrito": null,
+                  "observacao": null,
+                  "avatarUrl": null,
+                  "emancipado": false,
+                  "docEmancipado": null,
+                  "score": 0,
+                  "confirmaConsultaEnvio": true,
+                  "planoResponsavel": null,
+                  "planoCpfResponsavel": null,
+                  "planoNIFResponsavel": null,
+                  "numeroCarteira": null,
+                  "rg": null,
+                  "emissor": null,
+                  "dataEmissao": null,
+                  "dataAlteracao": null,
+                  "codigoPaciente": 23,
+                  "idAsaas": null,
+                  "tokenAsaas": null,
+                  "bandeiraCartao": 0,
+                  "ultimosDigitosCartao": null,
+                  "origemRelacionamentoId": 64,
+                  "origemRelacionamentoOutros": null,
+                  "origemRelacionamento": null,
+                  "origemRelacionamentoPacienteId": 22972,
+                  "origemRelacionamentoPaciente": null,
+                  "statusPacienteId": 1,
+                  "statusPaciente": null,
+                  "planoId": 77,
+                  "plano": null,
+                  "rnm": null,
+                  "campanhaId": null,
+                  "campanha": null,
+                  "dataExpiracaoToken": null,
+                  "tokenFotoPaciente": null,
+                  "id": 40441,
+                  "usuario": "Henrique Lopes da Silva",
+                  "dataCadastro": "2024-05-02T14:22:33.113121",
+                  "ativo": true
+                },
+                "statusOrcamento": null,
+                "conta": null,
+                "profissionalResponsavel": null,
+                "isImpresso": false,
+                "notaSolicitada": false,
+                "numeroRecorencia": null,
+                "dataRecorrencia": null,
+                "id": 23827,
+                "usuario": "henrique.silva@nst.com.br",
+                "dataCadastro": "2024-05-02T14:35:41.090259",
+                "ativo": true
+              },
+              "metodoPagamento": {
+                "contaId": 62,
+                "contaCaixaId": 21,
+                "formaPagamento": "DINHEIRO",
+                "desconto": 0,
+                "acrescimo": 0,
+                "tipoPagamentoId": 1,
+                "taxaScorePadrao": 0,
+                "parcelasPadrao": 0,
+                "taxaScoreBaixo": 0,
+                "parcelasBaixo": 0,
+                "taxaScoreAlto": 0,
+                "parcelasAlto": 0,
+                "valorMinimoParcela": 0,
+                "observacao": null,
+                "dataAlteracao": "2022-12-27T12:43:12.459838",
+                "usuarioAlteracao": "henrique.silva@nst.com.br",
+                "tipoGateway": 0,
+                "tipoTaxa": 0,
+                "tipoAcrescimo": 0,
+                "tipoDesconto": 0,
+                "tipoPagamento": null,
+                "conta": null,
+                "contaCaixa": null,
+                "jurosMultas": null,
+                "id": 38,
+                "usuario": "henrique.silva@nst.com.br",
+                "dataCadastro": "2022-04-27T17:22:12.409278",
+                "ativo": true
+              },
+              "id": 23417,
+              "usuario": "henrique.silva@nst.com.br",
+              "dataCadastro": "2024-05-02T14:40:06.831098",
+              "ativo": true
+            },
+            "negociacaoPagamento": [
+              {
+                "metodoPagamentoId": 38,
+                "negociacaoOrcamentoId": 23417,
+                "numeroParcela": 1,
+                "dataVencimentoParcela": "2024-05-02T23:59:59",
+                "qtdParcelas": 1,
+                "valorParcela": 143.57,
+                "valorTotalParcelas": 143.57,
+                "juros": false,
+                "descontoPagamentoPct": 0,
+                "valorFinalPagamento": 143.57,
+                "valorTotalParcelado": 143.57,
+                "metodoPagamento": {
+                  "contaId": 62,
+                  "contaCaixaId": 21,
+                  "formaPagamento": "DINHEIRO",
+                  "desconto": 0,
+                  "acrescimo": 0,
+                  "tipoPagamentoId": 1,
+                  "taxaScorePadrao": 0,
+                  "parcelasPadrao": 0,
+                  "taxaScoreBaixo": 0,
+                  "parcelasBaixo": 0,
+                  "taxaScoreAlto": 0,
+                  "parcelasAlto": 0,
+                  "valorMinimoParcela": 0,
+                  "observacao": null,
+                  "dataAlteracao": "2022-12-27T12:43:12.459838",
+                  "usuarioAlteracao": "henrique.silva@nst.com.br",
+                  "tipoGateway": 0,
+                  "tipoTaxa": 0,
+                  "tipoAcrescimo": 0,
+                  "tipoDesconto": 0,
+                  "tipoPagamento": {
+                    "nome": "Dinheiro",
+                    "aVista": true,
+                    "id": 1,
+                    "usuario": null,
+                    "dataCadastro": "2021-10-27T11:41:52.658875",
+                    "ativo": true
+                  },
+                  "conta": null,
+                  "contaCaixa": null,
+                  "jurosMultas": null,
+                  "id": 38,
+                  "usuario": "henrique.silva@nst.com.br",
+                  "dataCadastro": "2022-04-27T17:22:12.409278",
+                  "ativo": true
+                },
+                "negociacaoOrcamento": null,
+                "id": 45146,
+                "usuario": null,
+                "dataCadastro": "0001-01-01T00:00:00",
+                "ativo": false
+              }
+            ],
+            "metodoPagamentoList": [
+              {
+                "contaId": 62,
+                "contaCaixaId": 21,
+                "formaPagamento": "DINHEIRO",
+                "desconto": 0,
+                "acrescimo": 0,
+                "tipoPagamentoId": 1,
+                "taxaScorePadrao": 0,
+                "parcelasPadrao": 0,
+                "taxaScoreBaixo": 0,
+                "parcelasBaixo": 0,
+                "taxaScoreAlto": 0,
+                "parcelasAlto": 0,
+                "valorMinimoParcela": 0,
+                "observacao": null,
+                "dataAlteracao": "2022-12-27T12:43:12.459838",
+                "usuarioAlteracao": "henrique.silva@nst.com.br",
+                "tipoGateway": 0,
+                "tipoTaxa": 0,
+                "tipoAcrescimo": 0,
+                "tipoDesconto": 0,
+                "tipoPagamento": {
+                  "nome": "Dinheiro",
+                  "aVista": true,
+                  "id": 1,
+                  "usuario": null,
+                  "dataCadastro": "2021-10-27T11:41:52.658875",
+                  "ativo": true
+                },
+                "conta": null,
+                "contaCaixa": null,
+                "jurosMultas": null,
+                "id": 38,
+                "usuario": "henrique.silva@nst.com.br",
+                "dataCadastro": "2022-04-27T17:22:12.409278",
+                "ativo": true
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "detalha procedimentos": [
+      {
+        "json": {
+          "orcamentoId": 253235,
+          "pacienteNome": "Abílio Diniz",
+          "pacienteCelular": "16994660219",
+          "pacienteCPF": "24741070026",
+          "procedimentoId": 10299,
+          "nomeProcedimento": "Profilaxia",
+          "codigoTUSS": 85400319,
+          "descricaoCompleta": "Profilaxia|85400319 - Arcadas Superiores e inferiores",
+          "regiao": "Arcadas Superiores e inferiores",
+          "dentes": "N/A",
+          "valorOriginal": 164.15,
+          "valorDesconto": 64.15,
+          "valorFinal": 100,
+          "profissionalNome": "Alda Silva",
+          "planoNome": "Plano Particular",
+          "status": "PENDENTE",
+          "statusId": 1,
+          "aprovado": true,
+          "observacao": ""
+        }
+      },
+      {
+        "json": {
+          "orcamentoId": 253235,
+          "pacienteNome": "Abílio Diniz",
+          "pacienteCelular": "16994660219",
+          "pacienteCPF": "24741070026",
+          "procedimentoId": 6183,
+          "nomeProcedimento": "LIMPEZA (Profilaxia, Raspagem, Ultrassom)",
+          "codigoTUSS": 85200050,
+          "descricaoCompleta": "LIMPEZA (Profilaxia, Raspagem, Ultrassom)|85200050 - Arcadas Superiores e inferiores",
+          "regiao": "Arcadas Superiores e inferiores",
+          "dentes": "N/A",
+          "valorOriginal": 154.11,
+          "valorDesconto": 4.11,
+          "valorFinal": 150,
+          "profissionalNome": "Alda Silva",
+          "planoNome": "Plano Particular",
+          "status": "FINALIZADO",
+          "statusId": 3,
+          "aprovado": true,
+          "observacao": ""
+        }
+      },
+      {
+        "json": {
+          "orcamentoId": 253235,
+          "pacienteNome": "Abílio Diniz",
+          "pacienteCelular": "16994660219",
+          "pacienteCPF": "24741070026",
+          "procedimentoId": 9851,
+          "nomeProcedimento": "Ajuste Oclusal por acrescimo",
+          "codigoTUSS": 85400017,
+          "descricaoCompleta": "Ajuste Oclusal por acrescimo|85400017 (Dentes: 21, 41, 31, 11)",
+          "regiao": "N/A",
+          "dentes": "21, 41, 31, 11",
+          "valorOriginal": 408.68,
+          "valorDesconto": 8.68,
+          "valorFinal": 400,
+          "profissionalNome": "Alda Silva",
+          "planoNome": "Plano Particular",
+          "status": "PENDENTE",
+          "statusId": 1,
+          "aprovado": true,
+          "observacao": ""
+        }
+      },
+      {
+        "json": {
+          "orcamentoId": 253235,
+          "pacienteNome": "Abílio Diniz",
+          "pacienteCelular": "16994660219",
+          "pacienteCPF": "24741070026",
+          "procedimentoId": 3131,
+          "nomeProcedimento": "Restauracao Em Resina 2 Faces",
+          "codigoTUSS": null,
+          "descricaoCompleta": "Restauracao Em Resina 2 Faces (Dentes: 31, 11, 21, 41) - Faces: 31: O/I | 11: O/I | 21: O/I | 41: O/I",
+          "regiao": "N/A",
+          "dentes": "31, 11, 21, 41",
+          "valorOriginal": 748.72,
+          "valorDesconto": 8.72,
+          "valorFinal": 740,
+          "profissionalNome": "Alda Silva",
+          "planoNome": "Plano Particular",
+          "status": "PENDENTE",
+          "statusId": 1,
+          "aprovado": true,
+          "observacao": ""
+        }
+      }
+    ],
+    "Edit Fields": [
+      {
+        "json": {
+          "id_conta": "62",
+          "id_clinica": "57",
+          "id_profissional": "166",
+          "token": "Bearer eyJhbGciOiJQUzI1NiIsImtpZCI6IlJzSVh0MGxyVGltSTA0WHYzajZPV2ciLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiI3MiIsImVtYWlsIjoiaGVucmlxdWUuc2lsdmFAbnN0LmNvbS5iciIsImp0aSI6IjZmYzU2YTdmLWFlNzgtNDI5Ni04YmViLTI2YzNjZTdiMDBhYiIsIm5iZiI6MTc2MzM5MDYwMywiaWF0IjoxNzYzMzkwNjAzLCJyb2xlIjpbIlZpc3VhbGl6YXJSZW11bmVyYWNvZXMiLCJEZXNjb250b3Nub1JlY2ViaW1lbnRvIiwiRXh0cmF0b2RlR2F0ZXdheXMiLCJCYWl4YXJDb250YUNhaXhhIiwiSW5jbHVpck1vZGVsb3NkZUNvbnRyYXRvIiwiQ2FkYXN0cmFyTWVkaWNhbWVudG9zIiwiQ2FkYXN0cmFyRmluYW5jZWlybyIsIlZpc3VhbGl6YXJDb250YUNhaXhhIiwiQ2FkYXN0cmFyQ2xpbmljYSIsIkVkaXRhclJlY2VpdGEiLCJFZGl0YXJDb250YUNhaXhhIiwiSW5jbHVpckxvZ290aXBvQ2zDrW5pY2EiLCJUb2Rhc0NvbnRhQ2FpeGEiLCJDYWRhc3RyYXJGb3JuZWNlZG9yIiwiUmVsYXTDs3Jpb1NlbUFnZW5kYW1lbnRvcyIsIkNhZGFzdHJhclByb2Zpc3Npb25hbCIsIlZpc3VhbGl6YXJQYWNpZW50ZSIsIlBhaW5lbEZpbmFuY2Vpcm9QYWNpZW50ZSIsIkNhZGFzdHJhclBsYW5vcyIsIkNhZGFzdHJhclBhY2llbnRlIiwiQ2FuY2VsYW1lbnRvZGVSZWNlYmltZW50byIsIlZpc3VhbGl6YXJBc3NpbmF0dXJhcyIsIlZpc3VhbGl6YXJEYXNoYm9hcmRzRmluYW5jZWlybyIsIlZpc3VhbGl6YXJBZ2VuZGEiLCJJbmNsdWlyQWdlbmRhbWVudG8iLCJDYWRhc3RyYXJVc3VhcmlvIiwiUmVsYXTDs3Jpb2RlUHJvY2VkaW1lbnRvcyIsIkV4Y2x1aXJBZ2VuZGFtZW50byIsIkZlY2hhbWVudG9Db250YUNhaXhhIiwiQ2FkYXN0cmFySXRlbnNUcmF0YW1lbnRvIiwiQ2FuY2VsYXJDb250YUNhaXhhIiwiUGFpbmVsZGVMZWFkcyIsIkFib25hckp1cm9zZU11bHRhIiwiRXhjbHVpclJlY2VpdGEiLCJQYWluZWxkZVZlbmRhcyIsIkFiZXJ0dXJhQ29udGFDYWl4YSIsIlZpc3VhbGl6YXJFeHRyYXRvZGFDbMOtbmljYSIsIkNhbmNlbGFtZW50b2RhQ29udGEiLCJWaXN1YWxpemFyQ29uZmlndXJhw6fDtWVzR2VyYWlzIiwiQ2FkYXN0cmFyT2NvcnJlbmNpYXMiLCJWaXN1YWxpemFyQXVkaXRvcmlhZGVDYWl4YSIsIlZpc3VhbGl6YXJFc3Rvcm5vcyIsIlZpc3VhbGl6YXJSZWxhdMOzcmlvZGVHdWlhcyIsIlZpc3VhbGl6YXJJbnRlZ3Jhw6fDtWVzIiwiVmlzdWFsaXphckFicmlyL0ZlY2hhckNhaXhhIiwiVmlzdWFsaXphckFnZW5kYVByb2Zpc3Npb25hbCIsIlZpc3VhbGl6YXJDb21wcm9taXNzbyIsIlZpc3VhbGl6YXJSZWxhdMOzcmlvZGVUcmF0YW1lbnRvcyIsIkluY2x1aXJDb21wcm9taXNzbyIsIlZpc3VhbGl6YXJBbml2ZXJzYXJpYW50ZXMiLCJFeGNsdWlyQ29tcHJvbWlzc28iLCJWaXN1YWxpemFyRFJFIiwiVmlzdWFsaXphckF0ZW5kaWRvc1NlbVBhZ2FtZW50b3MiLCJFeGNsdWlyRG9jdW1lbnRvc2VBbmV4b3MiXSwiZXhwIjoxNzYzNDMzODAzLCJpc3MiOiJodHRwczovL2NsaW5peC1hdXRlbnRpY2FjYW8uYXp1cmV3ZWJzaXRlcy5uZXQiLCJhdWQiOiJodHRwczovL2NsaW5peC1jYWRhc3Ryby5henVyZXdlYnNpdGVzLm5ldCxodHRwczovL2NsaW5peC1maW5hbmNlaXJvLmF6dXJld2Vic2l0ZXMubmV0LGh0dHBzOi8vY2xpbml4LWFwaS5henVyZXdlYnNpdGVzLm5ldCJ9.c0FcJ_f_sLKPdULapm5wZS-En-ZOF7eCx2mRakJGP23UkxWBbYzTpMjvsdCp4hpEo801uxrMTAHsur-_k4P1Cq4r0e07eLd04vFmJ0sOfMJ4rEmsuhGt3LQCUYt9fxiaQF2mEaIt8OtHfsdX4Glne6G8oKwVdvi-iqLFUGv9iDsLT-g6F5x0pCVExH5RD_RqPFn5YFwRCRahmb8WHXxNMdT1xvzs0Hjq4Ovu7kMFv1qadkCijKCsmzZF0pu8AAqllbpEu6hCPhWGZAV7ZNnQdkybM0m919InaB3W45k3DlMB7yNlH6v-S-GIkFaxxTo9IsMpF9L3ufdvI2rIWIwEbw"
+        }
+      }
+    ],
+    "lista horarios do profissional": [
+      {
+        "json": {
+          "success": true,
+          "data": [
+            {
+              "horarioAtendimentoId": 4774,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "contaId": 62,
+              "contaNome": "SORRISO DENTAL 2",
+              "clinicaId": 57,
+              "clinica": "Sorriso Dental",
+              "segundaInicio": null,
+              "segundaFim": null,
+              "tercaInicio": null,
+              "tercaFim": null,
+              "qurtaInicio": null,
+              "quartaFim": null,
+              "quinInicio": null,
+              "quintaFim": null,
+              "sextaInicio": null,
+              "sextaFim": null,
+              "sabadoInicio": null,
+              "sabadoFim": null,
+              "domingoInicio": "08:00",
+              "domingoFim": "20:00"
+            },
+            {
+              "horarioAtendimentoId": 1615,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "contaId": 62,
+              "contaNome": "SORRISO DENTAL 2",
+              "clinicaId": 57,
+              "clinica": "Sorriso Dental",
+              "segundaInicio": null,
+              "segundaFim": null,
+              "tercaInicio": null,
+              "tercaFim": null,
+              "qurtaInicio": null,
+              "quartaFim": null,
+              "quinInicio": null,
+              "quintaFim": null,
+              "sextaInicio": null,
+              "sextaFim": null,
+              "sabadoInicio": "08:00",
+              "sabadoFim": "19:00",
+              "domingoInicio": null,
+              "domingoFim": null
+            },
+            {
+              "horarioAtendimentoId": 1616,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "contaId": 62,
+              "contaNome": "SORRISO DENTAL 2",
+              "clinicaId": 57,
+              "clinica": "Sorriso Dental",
+              "segundaInicio": "08:00",
+              "segundaFim": "19:00",
+              "tercaInicio": null,
+              "tercaFim": null,
+              "qurtaInicio": null,
+              "quartaFim": null,
+              "quinInicio": null,
+              "quintaFim": null,
+              "sextaInicio": null,
+              "sextaFim": null,
+              "sabadoInicio": null,
+              "sabadoFim": null,
+              "domingoInicio": null,
+              "domingoFim": null
+            },
+            {
+              "horarioAtendimentoId": 1614,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "contaId": 62,
+              "contaNome": "SORRISO DENTAL 2",
+              "clinicaId": 57,
+              "clinica": "Sorriso Dental",
+              "segundaInicio": null,
+              "segundaFim": null,
+              "tercaInicio": null,
+              "tercaFim": null,
+              "qurtaInicio": "08:00",
+              "quartaFim": "19:00",
+              "quinInicio": null,
+              "quintaFim": null,
+              "sextaInicio": null,
+              "sextaFim": null,
+              "sabadoInicio": null,
+              "sabadoFim": null,
+              "domingoInicio": null,
+              "domingoFim": null
+            },
+            {
+              "horarioAtendimentoId": 1613,
+              "profissionalId": 166,
+              "profissionalNome": "Alda Silva",
+              "contaId": 62,
+              "contaNome": "SORRISO DENTAL 2",
+              "clinicaId": 57,
+              "clinica": "Sorriso Dental",
+              "segundaInicio": null,
+              "segundaFim": null,
+              "tercaInicio": null,
+              "tercaFim": null,
+              "qurtaInicio": null,
+              "quartaFim": null,
+              "quinInicio": null,
+              "quintaFim": null,
+              "sextaInicio": "08:00",
+              "sextaFim": "19:00",
+              "sabadoInicio": null,
+              "sabadoFim": null,
+              "domingoInicio": null,
+              "domingoFim": null
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "gera token de acesso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gera token de acesso": {
+      "main": [
+        [
+          {
+            "node": "obtem variaveis de requsição",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "obtem variaveis de requsição": {
+      "main": [
+        [
+          {
+            "node": "Busca Orçamentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Busca Orçamentos": {
+      "main": [
+        [
+          {
+            "node": "Filtra somente PERDIDOS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtra somente PERDIDOS": {
+      "main": [
+        [
+          {
+            "node": "Buscar Detalhes Orçamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Detalhes Orçamento": {
+      "main": [
+        [
+          {
+            "node": "detalha procedimentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "detalha procedimentos": {
+      "main": [
+        [
+          {
+            "node": "Limit1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "marca consulta na agenda clinix",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit1": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "lista horarios do profissional",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d9c3eb3e-a0ec-44c5-b176-0874ba53a9be",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "58f508537e2719bd72de6568975744d71de58f58df05a6605d6562295e0ade42"
+  },
+  "id": "EHtiqsRPprqRgB3n",
+  "tags": []
+}
